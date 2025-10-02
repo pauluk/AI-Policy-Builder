@@ -1,0 +1,646 @@
+
+<!DOCTYPE html>
+<html lang="en-GB">
+<head> 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Policy Builder - Create Transparency Certificate</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Tinos:wght@400;700&display=swap');
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', sans-serif; }
+
+        .step-content { display: none; animation: fadeIn 0.5s ease-in-out; }
+        .step-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .step-indicator-container.completed { cursor: pointer; }
+        .step-indicator.active { background: #3b82f6; color: white; }
+        .step-indicator.completed { background: #10b981; color: white; }
+
+        .template-card { cursor: pointer; transition: all 0.2s ease-out; border: 2px solid #e5e7eb; position: relative; }
+        .dark .template-card { border-color: #4b5563; }
+        .template-card:hover { transform: translateY(-4px); box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-color: #93c5fd; }
+        .dark .template-card:hover { border-color: #60a5fa; }
+        input[type="radio"]:checked + .template-card {
+            border-color: #3b82f6; background: linear-gradient(to right, #eff6ff, #dbeafe);
+            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25); transform: translateY(-2px);
+        }
+        .dark input[type="radio"]:checked + .template-card {
+             border-color: #60a5fa; background: #1e293b;
+        }
+
+        .checkmark-container {
+            position: absolute; top: 1rem; right: 1rem; height: 1.75rem; width: 1.75rem; border-radius: 9999px;
+            display: flex; align-items: center; justify-content: center; color: white;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            opacity: 0; transform: scale(0.5); background-color: #ffffff; border: 2px solid #e5e7eb;
+        }
+        input[type="radio"]:checked + .template-card .checkmark-container {
+            opacity: 1; transform: scale(1); background-color: #3b82f6; border-color: #3b82f6;
+        }
+        .dark input[type="radio"]:checked + .template-card .checkmark-container { background-color: #60a5fa; border-color: #60a5fa; }
+
+        .tag { animation: popIn 0.3s ease-out; }
+        .selection-btn.selected { background-color: #eff6ff; border-color: #93c5fd; color: #1d4ed8; font-weight: 500; }
+        .dark .selection-btn.selected { background-color: #1e3a8a; border-color: #3b82f6; color: #eff6ff; }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+
+        .conditional-section { transition: all 0.3s ease-out; overflow: hidden; max-height: 0; opacity: 0;}
+        .conditional-section.visible { max-height: 1000px; opacity: 1; }
+
+        #pdf-certificate {
+            font-family: 'Tinos', serif; display: none; width: 210mm; min-height: 297mm;
+            padding: 15mm; box-sizing: border-box; color: #333; position: absolute; left: -9999px;
+            background: white;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-300 transition-colors duration-300">
+    <header class="bg-white dark:bg-slate-800 shadow-sm dark:shadow-md border-b border-slate-200 dark:border-slate-700 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-4">
+                    <div class="bg-blue-600 text-white p-2 rounded-lg"><i class="fas fa-robot text-xl"></i></div>
+                    <div>
+                        <h1 class="text-xl font-semibold text-slate-900 dark:text-slate-100">AI Policy Builder</h1>
+                        <p class="text-sm text-slate-600 dark:text-slate-400">Create your AI Transparency Certificate</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                     <button id="themeToggleBtn" title="Toggle Theme" class="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 h-10 w-10 rounded-lg text-sm font-medium transition flex items-center justify-center">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                     <button id="importBtn" title="Import Policy from YAML" class="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-lg text-sm font-medium transition">
+                        <i class="fas fa-upload mr-2"></i>Import
+                    </button>
+                    <input type="file" id="importFile" class="hidden" accept=".yaml, .yml">
+                     <button id="downloadPdfBtn" title="Download Certificate as PDF" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                        <i class="fas fa-file-pdf mr-2"></i>PDF
+                    </button>
+                    <button id="downloadContractBtn" title="Export Policy as YAML" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                        <i class="fas fa-download mr-2"></i>YAML
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+        <div id="progressBar" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6">
+            <div class="flex items-center justify-around flex-wrap">
+                 <div data-step="1" class="step-indicator-container flex items-center p-2"><div id="step1" class="step-indicator active w-10 h-10 rounded-full flex items-center justify-center font-semibold">1</div><div class="ml-3"><p class="text-sm font-medium text-slate-900 dark:text-slate-100">Use Case</p><p class="text-xs text-slate-500 dark:text-slate-400">Inherent risk</p></div></div><i class="fas fa-chevron-right text-slate-400 dark:text-slate-600 hidden md:block"></i>
+                <div data-step="2" class="step-indicator-container flex items-center p-2"><div id="step2" class="step-indicator w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center font-semibold text-slate-500 dark:text-slate-400">2</div><div class="ml-3"><p class="text-sm font-medium text-slate-900 dark:text-slate-100">Service</p><p class="text-xs text-slate-500 dark:text-slate-400">Basic details</p></div></div><i class="fas fa-chevron-right text-slate-400 dark:text-slate-600 hidden md:block"></i>
+                <div data-step="3" class="step-indicator-container flex items-center p-2"><div id="step3" class="step-indicator w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center font-semibold text-slate-500 dark:text-slate-400">3</div><div class="ml-3"><p class="text-sm font-medium text-slate-900 dark:text-slate-100">Data</p><p class="text-xs text-slate-500 dark:text-slate-400">Privacy controls</p></div></div><i class="fas fa-chevron-right text-slate-400 dark:text-slate-600 hidden md:block"></i>
+                <div data-step="4" class="step-indicator-container flex items-center p-2"><div id="step4" class="step-indicator w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center font-semibold text-slate-500 dark:text-slate-400">4</div><div class="ml-3"><p class="text-sm font-medium text-slate-900 dark:text-slate-100">Technology</p><p class="text-xs text-slate-500 dark:text-slate-400">AI/Automation</p></div></div><i class="fas fa-chevron-right text-slate-400 dark:text-slate-600 hidden md:block"></i>
+                <div data-step="5" class="step-indicator-container flex items-center p-2"><div id="step5" class="step-indicator w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center font-semibold text-slate-500 dark:text-slate-400">5</div><div class="ml-3"><p class="text-sm font-medium text-slate-900 dark:text-slate-100">Security</p><p class="text-xs text-slate-500 dark:text-slate-400">Mitigations</p></div></div><i class="fas fa-chevron-right text-slate-400 dark:text-slate-600 hidden md:block"></i>
+                <div data-step="6" class="step-indicator-container flex items-center p-2"><div id="step6" class="step-indicator w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center font-semibold text-slate-500 dark:text-slate-400">6</div><div class="ml-3"><p class="text-sm font-medium text-slate-900 dark:text-slate-100">Review</p><p class="text-xs text-slate-500 dark:text-slate-400">Final score</p></div></div>
+            </div>
+        </div>
+    
+        <div class="grid lg:grid-cols-3 gap-6 mt-6 mb-12">
+            <form id="policyForm" class="lg:col-span-2">
+                <div id="step1-content" class="step-content active bg-white dark:bg-slate-800 rounded-xl shadow-sm p-8"></div>
+                <div id="step2-content" class="step-content bg-white dark:bg-slate-800 rounded-xl shadow-sm p-8"></div>
+                <div id="step3-content" class="step-content bg-white dark:bg-slate-800 rounded-xl shadow-sm p-8"></div>
+                <div id="step4-content" class="step-content bg-white dark:bg-slate-800 rounded-xl shadow-sm p-8"></div>
+                <div id="step5-content" class="step-content bg-white dark:bg-slate-800 rounded-xl shadow-sm p-8"></div>
+                <div id="step6-content" class="step-content bg-white dark:bg-slate-800 rounded-xl shadow-sm p-8"></div>
+                
+                <div class="mt-8 flex justify-between items-center">
+                    <button type="button" id="prevBtn" class="bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-300 text-slate-700 px-6 py-2 rounded-lg font-medium transition invisible"><i class="fas fa-arrow-left mr-2"></i>Back</button>
+                    <div class="flex items-center">
+                        <button type="button" id="viewScoreBtn" class="bg-slate-500 hover:bg-slate-600 text-white px-6 py-3 rounded-lg font-medium transition hidden mr-3"><i class="fas fa-clipboard-list mr-2"></i>View Score Breakdown</button>
+                        <button type="button" id="completeBtn" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition hidden"><i class="fas fa-check mr-2"></i>Generate Certificate</button>
+                    </div>
+                    <button type="button" id="nextBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition">Next <i class="fas fa-arrow-right ml-2"></i></button>
+                </div>
+            </form>
+            <aside class="lg:col-span-1">
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 sticky top-24">
+                    <h3 class="font-semibold text-slate-900 dark:text-slate-100 flex items-center mb-4"><i class="fas fa-file-code text-slate-600 dark:text-slate-400 mr-2"></i>Live Preview (YAML)</h3>
+                    <div class="preview-panel bg-slate-800 dark:bg-slate-900 text-slate-200 rounded-lg p-4 text-xs font-mono max-h-[60vh] overflow-y-auto"><pre id="livePreview"></pre></div>
+                </div>
+            </aside>
+        </div>
+    </main>
+
+    <footer class="text-center py-8">
+        <button id="resetBtn" class="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 text-sm transition underline-offset-4 hover:underline">
+            <i class="fas fa-undo mr-1"></i>Start Over
+        </button>
+    </footer>
+
+    <div id="scoreBreakdownModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl p-8 max-w-2xl mx-4 w-full">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100">Risk Score Breakdown</h2>
+                <button id="closeScoreModalBtn" class="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 text-3xl leading-none">&times;</button>
+            </div>
+            <div class="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg mb-6 text-center">
+                <p class="text-sm text-slate-600 dark:text-slate-400">Final Risk Score</p>
+                <p id="modalFinalScore" class="text-4xl font-bold text-slate-800 dark:text-slate-100"></p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="font-medium text-slate-800 dark:text-slate-200 border-b dark:border-slate-600 pb-2 mb-3 flex items-center"><i class="fas fa-arrow-up text-red-500 mr-2"></i>Risk Factors (Adds Points)</h3>
+                    <ul id="modalRiskFactors" class="space-y-2 text-sm"></ul>
+                </div>
+                <div>
+                    <h3 class="font-medium text-slate-800 dark:text-slate-200 border-b dark:border-slate-600 pb-2 mb-3 flex items-center"><i class="fas fa-arrow-down text-green-500 mr-2"></i>Mitigating Factors (Removes Points)</h3>
+                    <ul id="modalMitigations" class="space-y-2 text-sm"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="pdf-certificate"></div>
+
+    <script>
+        // --- INJECT CONTENT FOR STEPS ---
+        const stepContents = {
+            1: `<h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">Select Primary Use Case</h2><p class="text-sm text-slate-600 dark:text-slate-400 mb-8">This helps determine the inherent risk of the service.</p><div class="grid md:grid-cols-2 gap-6"><div><input type="radio" name="template" id="template-finance" value="finance" class="hidden" /><label for="template-finance" class="template-card rounded-xl p-6 h-full flex flex-col"><div class="checkmark-container"><i class="fas fa-check"></i></div><div class="flex items-start justify-between mb-4"><div class="bg-green-100 dark:bg-green-900/50 p-3 rounded-lg"><i class="fas fa-chart-line text-green-600 dark:text-green-400 text-2xl"></i></div></div><h3 class="font-semibold text-slate-900 dark:text-slate-100 text-lg mb-2">Financial Analysis</h3></label></div><div><input type="radio" name="template" id="template-customer" value="customer" class="hidden" /><label for="template-customer" class="template-card rounded-xl p-6 h-full flex flex-col"><div class="checkmark-container"><i class="fas fa-check"></i></div><div class="flex items-start justify-between mb-4"><div class="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-lg"><i class="fas fa-headset text-blue-600 dark:text-blue-400 text-2xl"></i></div></div><h3 class="font-semibold text-slate-900 dark:text-slate-100 text-lg mb-2">Customer Service</h3></label></div><div><input type="radio" name="template" id="template-hr" value="hr" class="hidden" /><label for="template-hr" class="template-card rounded-xl p-6 h-full flex flex-col"><div class="checkmark-container"><i class="fas fa-check"></i></div><div class="flex items-start justify-between mb-4"><div class="bg-purple-100 dark:bg-purple-900/50 p-3 rounded-lg"><i class="fas fa-users text-purple-600 dark:text-purple-400 text-2xl"></i></div></div><h3 class="font-semibold text-slate-900 dark:text-slate-100 text-lg mb-2">HR & Recruitment</h3></label></div><div><input type="radio" name="template" id="template-clinical" value="clinical" class="hidden" /><label for="template-clinical" class="template-card rounded-xl p-6 h-full flex flex-col"><div class="checkmark-container"><i class="fas fa-check"></i></div><div class="flex items-start justify-between mb-4"><div class="bg-red-100 dark:bg-red-900/50 p-3 rounded-lg"><i class="fas fa-heartbeat text-red-600 dark:text-red-400 text-2xl"></i></div></div><h3 class="font-semibold text-slate-900 dark:text-slate-100 text-lg mb-2">Clinical Support</h3></label></div><div class="md:col-span-2"><input type="radio" name="template" id="template-custom" value="custom" class="hidden" checked /><label for="template-custom" class="template-card rounded-xl p-6 h-full flex items-center"><div class="checkmark-container"><i class="fas fa-check"></i></div><div class="bg-slate-100 dark:bg-slate-700 p-3 rounded-lg mr-4"><i class="fas fa-cog text-slate-600 dark:text-slate-400 text-2xl"></i></div><div><h3 class="font-semibold text-slate-900 dark:text-slate-100 text-lg">General / Custom</h3><p class="text-sm text-slate-500 dark:text-slate-400">For use cases not listed above.</p></div></label></div></div>`,
+            2: `<h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6">Service Information</h2><div class="space-y-6"><div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Service Name</label><input type="text" name="service.name" class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg" placeholder="e.g., Financial Report Generator"></div><div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Department/Owner</label><select name="service.owner" class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg"><option value="">Select department...</option><option value="Finance">Finance</option><option value="Human Resources">Human Resources</option><option value="IT">IT</option><option value="Operations">Operations</option><option value="Clinical Services">Clinical</option><option value="Marketing">Marketing</option><option value="Legal & Compliance">Legal</option></select></div><div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Primary Purpose</label><textarea name="service.purpose" rows="3" class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg" placeholder="Describe the main purpose of this service..."></textarea></div><div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Automation Tools Involved</label><div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3" id="automationToolButtons"></div><div class="flex items-center gap-2"><input type="text" id="automationToolInput" class="flex-grow px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg" placeholder="Add another tool..."><button type="button" id="addAutomationToolBtn" class="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg font-medium">Add</button></div><div id="automationToolTags" class="mt-3 flex flex-wrap gap-2"></div></div></div>`,
+            3: `<h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6">Data & Privacy Configuration</h2><div class="space-y-6"><div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Lawful Basis (GDPR)</label><select name="privacy.lawfulBasis" class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg"><option value="public-task">Public task</option><option value="legitimate-interests">Legitimate interests</option><option value="consent">Consent</option><option value="contract">Contract</option></select></div><div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Data Types Processed</label><div class="grid grid-cols-2 md:grid-cols-3 gap-3"><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg"><input type="checkbox" name="privacy.sensitiveData" value="health" class="mr-2 h-4 w-4 rounded text-red-600 focus:ring-red-500"><span class="text-sm font-medium text-red-700 dark:text-red-400">Health Data</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg"><input type="checkbox" name="privacy.sensitiveData" value="pii" class="mr-2 h-4 w-4 rounded text-orange-600 focus:ring-orange-500"><span class="text-sm font-medium text-orange-700 dark:text-orange-400">Personal Data (PII)</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg"><input type="checkbox" name="privacy.sensitiveData" value="financial" class="mr-2 h-4 w-4 rounded text-amber-600 focus:ring-amber-500"><span class="text-sm">Financial Data</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg"><input type="checkbox" name="privacy.sensitiveData" value="business-ip" class="mr-2 h-4 w-4 rounded text-yellow-600 focus:ring-yellow-500"><span class="text-sm">Business IP</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg"><input type="checkbox" name="privacy.sensitiveData" value="business-sops" class="mr-2 h-4 w-4 rounded text-sky-600 focus:ring-sky-500"><span class="text-sm">Business SOPs</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg"><input type="checkbox" name="privacy.sensitiveData" value="public-communications" class="mr-2 h-4 w-4 rounded text-blue-600 focus:ring-blue-500"><span class="text-sm">Public Communications</span></label></div></div><div class="grid md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Input Retention</label><select name="privacy.inputRetention" class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg"><option value="hash-only">Hash only (no storage)</option><option value="24-hours">24 hours</option><option value="7-days">7 days</option><option value="1-month">1 Month</option><option value="1-year">1 Year</option><option value="6-plus-1-year">6+1 Years</option><option value="indefinitely">Indefinitely</option></select></div><div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Output Retention</label><select name="privacy.outputRetention" class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg"><option value="no-storage">No storage</option><option value="24-hours">24 hours</option><option value="7-days">7 days</option><option value="1-month">1 Month</option><option value="1-year">1 Year</option><option value="6-plus-1-year">6+1 Years</option><option value="indefinitely">Indefinitely</option></select></div></div></div>`,
+            4: `<h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6">Technology Configuration</h2><div class="space-y-6"><div class="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg border dark:border-slate-700"><label class="flex items-center font-medium text-slate-800 dark:text-slate-200"><input type="checkbox" name="models.isAutomationOnly" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm">This is a non-AI automation only (no generative model)</span></label></div><div id="automationGuidanceSection" class="conditional-section bg-green-50 dark:bg-green-900/50 rounded-lg p-6 border border-green-200 dark:border-green-800"><h3 class="font-medium text-slate-900 dark:text-slate-100 flex items-center"><i class="fas fa-cogs text-green-600 dark:text-green-400 mr-2"></i>Automation Policy</h3><p class="text-sm text-slate-600 dark:text-slate-400 mt-2">Please ensure the specific automation tool(s) used are listed in the 'Automation Tools Involved' section in Step 2.</p></div><div id="aiModelSection" class="conditional-section space-y-6"><div class="bg-blue-50 dark:bg-blue-900/50 rounded-lg p-6 border border-blue-200 dark:border-blue-800"><h3 class="font-medium text-slate-900 dark:text-slate-100 mb-4 flex items-center"><i class="fas fa-robot text-blue-600 dark:text-blue-400 mr-2"></i>Primary Model</h3><div class="grid md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Provider</label><select name="models.primary.provider" class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg"><option>Azure OpenAI</option><option>AWS Bedrock</option><option>Google Vertex AI</option><option>On-premise</option></select></div><div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Model</label><select name="models.primary.model" class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg"><option>GPT-4o</option><option>GPT-4o-mini</option><option>Claude-3.5-sonnet</option><option>Llama-3.1-70B</option><option value="Other">Other (please specify)</option></select><input type="text" name="models.primary.customModel" placeholder="Specify custom model name" class="w-full mt-2 px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg hidden"></div></div></div><div><label class="flex items-center mb-4"><input type="checkbox" name="models.fallback.enabled" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">Enable fallback model</span></label><div id="fallbackModelSection" class="conditional-section bg-purple-50 dark:bg-purple-900/50 rounded-lg p-6 border border-purple-200 dark:border-purple-800"><h3 class="font-medium text-slate-900 dark:text-slate-100 mb-4 flex items-center"><i class="fas fa-shield-alt text-purple-600 dark:text-purple-400 mr-2"></i>Fallback Model</h3><div class="grid md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Provider</label><select name="models.fallback.provider" class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg"><option>Azure OpenAI</option><option>AWS Bedrock</option><option>On-premise</option></select></div><div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Model</label><select name="models.fallback.model" class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg"><option>GPT-4o-mini</option><option>Claude-3-haiku</option><option>Llama-3.1-8B</option><option value="Other">Other (please specify)</option></select><input type="text" name="models.fallback.customModel" placeholder="Specify custom model name" class="w-full mt-2 px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg hidden"></div></div></div></div></div><div class="space-y-6 mt-6"><h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100">Systems Involved in Process</h2><div id="systemSelectionButtons" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"></div><div class="flex items-center gap-2 pt-2"><input type="text" id="customSystemInput" class="flex-grow px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg" placeholder="Add another system..."><button type="button" id="addSystemBtn" class="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg font-medium">Add</button></div><div id="systemTags" class="mt-3 flex flex-wrap gap-2"></div></div>`,
+            5: `<h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6">Security & Process Controls</h2><div class="space-y-6"><div class="space-y-4"><h3 class="font-medium text-slate-900 dark:text-slate-100 mb-2 flex items-center"><i class="fas fa-lock text-slate-600 dark:text-slate-400 mr-2"></i>General Security Measures</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.mfaRequired" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">Access requires Multi-Factor Authentication (MFA)</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.rbacInPlace" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">Role-Based Access Control (RBAC) is enforced</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.encryptedAtRest" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">Data is encrypted at rest</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.encryptedInTransit" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">Data is encrypted in transit</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.humanInLoop" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">Human-in-the-loop for sensitive decisions</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.sovereignCloud" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">Data stored in UK/EU sovereign cloud</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.penTesting" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">Annual penetration testing performed</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.auditLogs" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">Immutable audit logs maintained</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.dsarProcess" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">DSAR process in place</span></label></div></div><div id="llmMitigationsSection" class="conditional-section space-y-4 pt-4"><h3 class="font-medium text-slate-900 dark:text-slate-100 mb-2 flex items-center"><i class="fas fa-cogs text-slate-600 dark:text-slate-400 mr-2"></i>LLM Data Handling Mitigations</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.piiRedaction" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">PII Redaction/Anonymisation before LLM</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.promptGuardrails" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">Prompt Engineering Guardrails in place</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.useGateway" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">Use of filtered Prompt/Response Gateway</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.noTraining" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">Data excluded from vendor model training</span></label></div></div></div>`,
+            6: `<h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6">Review Certificate Details & Risk Score</h2><div class="space-y-6"><div class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-700/50 dark:to-slate-800/50 rounded-lg p-6 border dark:border-slate-700"><h3 class="font-medium text-slate-900 dark:text-slate-100 mb-3 flex items-center"><i class="fas fa-check-circle text-green-600 dark:text-green-400 mr-2"></i>Configuration Summary</h3><div id="reviewSummary" class="space-y-2 text-sm grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2"></div></div><div id="riskAssessment" class="rounded-lg p-6 border dark:border-slate-700"></div></div>`
+        };
+        Object.keys(stepContents).forEach(key => {
+            document.getElementById(`step${key}-content`).innerHTML = stepContents[key];
+        });
+        document.getElementById('pdf-certificate').innerHTML = `<div style="border: 1px solid #ddd; padding: 2mm; background: #f9f9f9;"><div style="border: 4px double #3b82f6; padding: 10mm; text-align: center; background: white;"><div style="display: flex; align-items: center; justify-content: center; margin-bottom: 8mm;"><div style="background-color: #3b82f6; color: white; padding: 4mm; border-radius: 8px; font-size: 28px; margin-right: 5mm;"><i class="fas fa-robot"></i></div><div><h1 style="font-size: 24pt; color: #1e3a8a; margin: 0; font-weight: 700;">Certificate of AI Transparency</h1><p style="margin: 0; font-size: 11pt; color: #555;">Issued on: <span id="pdf-date"></span></p></div></div><p style="font-size: 12pt; margin: 8mm 0;">This certificate attests that the service detailed below has been configured in accordance with the specified transparency and safety protocols.</p><div style="text-align: left; border-top: 1px solid #ddd; margin-top: 8mm; padding-top: 8mm; font-size: 11pt;"><h2 style="font-size: 14pt; color: #1e3a8a; border-bottom: 1px solid #3b82f6; padding-bottom: 2mm; margin-bottom: 4mm;">Service Details</h2><p style="margin: 3mm 0;"><strong>Service Name:</strong> <span id="pdf-service-name"></span></p><p style="margin: 3mm 0;"><strong>Service Owner:</strong> <span id="pdf-owner"></span></p><p style="margin: 3mm 0;"><strong>Primary Purpose:</strong> <span id="pdf-purpose"></span></p></div><div style="text-align: left; border-top: 1px solid #ddd; margin-top: 8mm; padding-top: 8mm; font-size: 11pt;"><h2 style="font-size: 14pt; color: #1e3a8a; border-bottom: 1px solid #3b82f6; padding-bottom: 2mm; margin-bottom: 4mm;">Data & Privacy Controls</h2><p style="margin: 3mm 0;"><strong>Lawful Basis (GDPR):</strong> <span id="pdf-lawful-basis"></span></p><p style="margin: 3mm 0;"><strong>Data Types Processed:</strong> <span id="pdf-data-types"></span></p><p style="margin: 3mm 0;"><strong>Data Retention Policy:</strong> <span id="pdf-retention"></span></p></div><div style="text-align: left; border-top: 1px solid #ddd; margin-top: 8mm; padding-top: 8mm; font-size: 11pt;"><h2 style="font-size: 14pt; color: #1e3a8a; border-bottom: 1px solid #3b82f6; padding-bottom: 2mm; margin-bottom: 4mm;">Technology & Security</h2><p style="margin: 3mm 0;"><strong>Technology Stack:</strong> <span id="pdf-model"></span></p><p style="margin: 3mm 0;"><strong>Key Security Mitigations:</strong> <span id="pdf-mitigations"></span></p></div><div style="border: 2px solid; margin-top: 12mm; padding: 5mm; text-align: center;" id="pdf-risk-box"><h3 style="margin: 0 0 2mm 0; font-size: 12pt;">Final Assessed Risk Score</h3><p style="font-size: 20pt; font-weight: 700; margin: 0;" id="pdf-risk-level"></p></div></div></div>`;
+
+        // --- SCRIPT START ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- STATE & CONFIG ---
+            let currentStep = 1;
+            const TOTAL_STEPS = 6;
+            let policyConfig = {};
+            let lastRiskProfile = {};
+            const { jsPDF } = window.jspdf;
+            const jsyaml = window.jsyaml;
+
+            const baseTemplate = {
+                template: 'custom',
+                service: { name: "", owner: "", purpose: "", automationTools: [], involvedSystems: [] },
+                privacy: { lawfulBasis: 'public-task', sensitiveData: [], inputRetention: 'hash-only', outputRetention: 'no-storage' },
+                models: { isAutomationOnly: false, primary: { provider: 'Azure OpenAI', model: 'GPT-4o', customModel: '' }, fallback: { enabled: false, provider: 'Azure OpenAI', model: 'GPT-4o-mini', customModel: '' } },
+                security: { encryptedAtRest: true, encryptedInTransit: true, mfaRequired: false, rbacInPlace: false, audited: false, humanInLoop: false, piiRedaction: false, promptGuardrails: false, useGateway: false, noTraining: true, dsarProcess: false, sovereignCloud: false, penTesting: false, auditLogs: false },
+                settings: { factGrounding: true, contentFiltering: true, logPrompts: false, monitoring: true }
+            };
+
+            const templates = {
+                finance: { template: 'finance', service: { name: "Financial Analysis Bot", owner: "Finance", purpose: "To analyse financial documents and generate variance reports."}, privacy: { sensitiveData: ['pii', 'financial', 'business-ip'], inputRetention: '6-plus-1-year' }, security: { mfaRequired: true, rbacInPlace: true, penTesting: true } },
+                customer: { template: 'customer', service: { name: "Customer Service Assistant", owner: "Operations", purpose: "To classify support tickets and provide automated first-line responses."}, privacy: { sensitiveData: ['pii', 'public-communications'], inputRetention: '1-month' } },
+                hr: { template: 'hr', service: { name: "Recruitment CV Screener", owner: "Human Resources", purpose: "To screen CVs against job descriptions."}, privacy: { lawfulBasis: 'consent', sensitiveData: ['pii'], inputRetention: '1-year' }, models: { primary: { provider: 'On-premise' } }, security: { humanInLoop: true, rbacInPlace: true, piiRedaction: true } },
+                clinical: { template: 'clinical', service: { name: "Clinical Notes Summariser", owner: "Clinical Services", purpose: "To summarise patient notes for clinician review."}, privacy: { lawfulBasis: 'public-task', sensitiveData: ['pii', 'health'] }, security: { mfaRequired: true, rbacInPlace: true, auditLogs: true, humanInLoop: true, useGateway: true, piiRedaction: true, sovereignCloud: true } },
+                custom: { template: 'custom' }
+            };
+
+            const form = document.getElementById('policyForm');
+            
+            // --- CORE LOGIC - FULLY IMPLEMENTED ---
+            
+            const deepMerge = (target, ...sources) => {
+                for (const source of sources) {
+                    for (const key in source) {
+                        if (source[key] instanceof Object && !Array.isArray(source[key]) && key in target && target[key] instanceof Object) {
+                             deepMerge(target[key], source[key]);
+                        } else if (source[key] !== undefined) {
+                            target[key] = source[key];
+                        }
+                    }
+                }
+                return target;
+            };
+
+            const generateYAML = (data) => {
+                const cleanData = JSON.parse(JSON.stringify(data));
+                let yamlObject = {
+                    ai_policy_version: '2.7',
+                    template: cleanData.template,
+                    service: {
+                        ...cleanData.service,
+                        automationToolsCount: (cleanData.service.automationTools || []).length,
+                        involvedSystemsCount: (cleanData.service.involvedSystems || []).length,
+                    },
+                    privacy_controls: {
+                        lawful_basis_gdpr: cleanData.privacy.lawfulBasis,
+                        sensitive_data_types: cleanData.privacy.sensitiveData,
+                        retention_policy: { input: cleanData.privacy.inputRetention, output: cleanData.privacy.outputRetention }
+                    },
+                    technology: { type: cleanData.models.isAutomationOnly ? 'automation' : 'generative-ai' },
+                    security_controls: cleanData.security,
+                };
+
+                if (cleanData.models.isAutomationOnly) {
+                    yamlObject.technology.tools = cleanData.service.automationTools || [];
+                } else {
+                    yamlObject.technology.primary_model = { provider: cleanData.models.primary.provider, model: cleanData.models.primary.model === 'Other' ? cleanData.models.primary.customModel : cleanData.models.primary.model };
+                    if (cleanData.models.fallback.enabled) {
+                        yamlObject.technology.fallback_model = { provider: cleanData.models.fallback.provider, model: cleanData.models.fallback.model === 'Other' ? cleanData.models.fallback.customModel : cleanData.models.fallback.model };
+                    }
+                     yamlObject.ai_settings = cleanData.settings;
+                }
+                return jsyaml.dump(yamlObject, { indent: 2, skipInvalid: true });
+            };
+
+            const updateLivePreview = () => { document.getElementById('livePreview').textContent = generateYAML(policyConfig); };
+            
+            function createTagManager(configKey, buttonContainerId, textInputId, addBtnId, tagsContainerId) {
+                const btnContainer = document.getElementById(buttonContainerId);
+                const textInput = document.getElementById(textInputId);
+                const addBtn = document.getElementById(addBtnId);
+                const tagsContainer = document.getElementById(tagsContainerId);
+                
+                function render() {
+                    if (!tagsContainer) return;
+                    tagsContainer.innerHTML = '';
+                    (policyConfig.service[configKey] || []).forEach(item => {
+                        const tag = document.createElement('span');
+                        tag.className = 'tag bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-300 text-sm font-medium px-3 py-1 rounded-full flex items-center';
+                        tag.innerHTML = `${item} <button type="button" data-item="${item}" class="ml-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-bold">&times;</button>`;
+                        tagsContainer.appendChild(tag);
+                    });
+                    if (btnContainer) {
+                        btnContainer.querySelectorAll('button').forEach(btn => {
+                            btn.classList.toggle('selected', (policyConfig.service[configKey] || []).includes(btn.dataset.tool || btn.dataset.system));
+                        });
+                    }
+                }
+
+                function addItem(item) {
+                    if (item && !(policyConfig.service[configKey] || []).includes(item)) {
+                        if(!policyConfig.service[configKey]) policyConfig.service[configKey] = [];
+                        policyConfig.service[configKey].push(item);
+                        render();
+                        updateConfigFromForm();
+                    }
+                }
+
+                function removeItem(item) {
+                    policyConfig.service[configKey] = (policyConfig.service[configKey] || []).filter(i => i !== item);
+                    render();
+                    updateConfigFromForm();
+                }
+
+                if (addBtn) {
+                     addBtn.addEventListener('click', () => {
+                        addItem(textInput.value.trim());
+                        textInput.value = '';
+                    });
+                     textInput.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addItem(textInput.value.trim());
+                            textInput.value = '';
+                        }
+                    });
+                }
+               
+                if (btnContainer) {
+                    btnContainer.addEventListener('click', (e) => {
+                        const btn = e.target.closest('button');
+                        if (!btn) return;
+                        const item = btn.dataset.tool || btn.dataset.system;
+                        if (!policyConfig.service[configKey]) policyConfig.service[configKey] = [];
+                        const index = policyConfig.service[configKey].indexOf(item);
+                        if (index > -1) {
+                            policyConfig.service[configKey].splice(index, 1);
+                        } else {
+                            policyConfig.service[configKey].push(item);
+                        }
+                        render();
+                        updateConfigFromForm();
+                    });
+                }
+
+                tagsContainer.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'BUTTON') {
+                        removeItem(e.target.dataset.item);
+                    }
+                });
+                return { render };
+            }
+
+            const automationToolManager = createTagManager('automationTools', 'automationToolButtons', 'automationToolInput', 'addAutomationToolBtn', 'automationToolTags');
+            const systemManager = createTagManager('involvedSystems', 'systemSelectionButtons', 'customSystemInput', 'addSystemBtn', 'systemTags');
+
+            const updateConfigFromForm = () => {
+                const data = JSON.parse(JSON.stringify(policyConfig));
+                for (const el of form.elements) {
+                    if (!el.name) continue;
+                    const keys = el.name.split('.');
+                    let current = data;
+                    for (let i = 0; i < keys.length - 1; i++) {
+                        if (!current[keys[i]]) current[keys[i]] = {};
+                        current = current[keys[i]];
+                    }
+                    const key = keys[keys.length - 1];
+                    if (el.type === 'checkbox') {
+                         current[key] = el.checked;
+                    } else if (el.type !== 'radio' || (el.type === 'radio' && el.checked)) {
+                         current[key] = el.value;
+                    }
+                }
+                data.privacy.sensitiveData = Array.from(form.querySelectorAll('[name="privacy.sensitiveData"]:checked')).map(el => el.value);
+                policyConfig = data;
+                updateLivePreview();
+                toggleConditionalSections();
+            };
+
+            const updateFormFromConfig = () => {
+                for (const el of form.elements) {
+                    if (!el.name) continue;
+                    const keys = el.name.split('.');
+                    let value = policyConfig;
+                    try { keys.forEach(k => { value = value[k]; });
+                    } catch (e) { value = undefined; }
+                    
+                    if (value !== undefined && value !== null) {
+                        if (el.type === 'checkbox') el.checked = value;
+                        else if (el.type === 'radio') {
+                             const radioToSelect = form.querySelector(`[name="${el.name}"][value="${value}"]`);
+                             if(radioToSelect) radioToSelect.checked = true;
+                        }
+                        else el.value = value;
+                    }
+                }
+                form.querySelectorAll('[name="privacy.sensitiveData"]').forEach(el => { el.checked = (policyConfig.privacy.sensitiveData || []).includes(el.value); });
+                
+                automationToolManager.render();
+                systemManager.render();
+                updateLivePreview();
+                toggleConditionalSections();
+            };
+            
+            const handleTemplateChange = (templateName) => {
+                const base = JSON.parse(JSON.stringify(baseTemplate));
+                const templateData = JSON.parse(JSON.stringify(templates[templateName || 'custom']));
+                policyConfig = deepMerge({}, base, templateData);
+                updateFormFromConfig();
+            };
+
+            const dataRiskMap = { health: 60, pii: 45, financial: 35, 'business-ip': 30, 'business-sops': 10, 'public-communications': 5 };
+            const retentionRiskMap = { 'hash-only': -15, 'no-storage': -15, '24-hours': 1, '7-days': 3, '1-month': 8, '1-year': 25, '6-plus-1-year': 30, 'indefinitely': 50 };
+            const useCaseRiskMap = { finance: 15, clinical: 20, hr: 15, customer: 5, custom: 0 };
+
+            const calculateRiskProfile = () => {
+                let score = 0;
+                let factors = [];
+                let mitigations = [];
+
+                const useCaseScore = useCaseRiskMap[policyConfig.template] || 0;
+                if(useCaseScore > 0) { score += useCaseScore; factors.push({ text: `Inhererent risk for '${policyConfig.template}' use case`, value: useCaseScore }); }
+
+                const dataScores = (policyConfig.privacy.sensitiveData || [])
+                    .map(type => ({ type, score: dataRiskMap[type] || 0 }))
+                    .filter(d => d.score > 0)
+                    .sort((a, b) => b.score - a.score);
+
+                if (dataScores.length > 0) {
+                    let cumulativeDataScore = 0;
+                    dataScores.forEach((item, index) => {
+                        const weight = Math.pow(0.5, index);
+                        const weightedScore = item.score * weight;
+                        cumulativeDataScore += weightedScore;
+                        factors.push({
+                            text: `${index === 0 ? 'Highest risk' : 'Additional risk'} from ${item.type.replace('-', ' ')} data`,
+                            value: Math.round(weightedScore)
+                        });
+                    });
+                    score += cumulativeDataScore;
+                }
+
+                const systemCount = (policyConfig.service.involvedSystems || []).length;
+                if (systemCount > 1) {
+                    const systemScore = (systemCount-1) * 2;
+                    score += systemScore;
+                    factors.push({ text: `Process complexity (${systemCount} systems)`, value: systemScore });
+                }
+
+                const inputRetScore = retentionRiskMap[policyConfig.privacy.inputRetention] || 0;
+                if(inputRetScore > 0) { score += inputRetScore; factors.push({ text: "Input data retention policy", value: inputRetScore }); }
+                else if(inputRetScore < 0) { score += inputRetScore; mitigations.push({ text: "Minimal input data retention", value: inputRetScore }); }
+                const outputRetScore = retentionRiskMap[policyConfig.privacy.outputRetention] || 0;
+                if(outputRetScore > 0) { score += outputRetScore; factors.push({ text: "Output data retention policy", value: outputRetScore }); }
+                else if(outputRetScore < 0) { score += outputRetScore; mitigations.push({ text: "Minimal output data retention", value: outputRetScore }); }
+
+                if (policyConfig.models.isAutomationOnly) {
+                    score -= 20; mitigations.push({ text: "Standard automation (non-generative AI)", value: -20 });
+                } else {
+                    score += 20; factors.push({ text: "Use of Generative AI model", value: 20 });
+                    if(policyConfig.models.fallback.enabled) { score += 5; factors.push({ text: "Increased complexity from fallback model", value: 5 });}
+                    if (policyConfig.models.primary.provider?.toLowerCase().includes('on-premise')) { score -= 20; mitigations.push({ text: "On-premise model deployment", value: -20 }); }
+                    if(policyConfig.security.useGateway) { score -= 25; mitigations.push({ text: "Filtered prompt/response gateway", value: -25 });}
+                    else if(policyConfig.security.piiRedaction) { score -= 20; mitigations.push({ text: "PII Redaction before LLM", value: -20 });}
+                    if(policyConfig.security.promptGuardrails) { score -= 10; mitigations.push({ text: "Prompt engineering guardrails", value: -10 });}
+                    if(policyConfig.security.noTraining) { score -= 15; mitigations.push({ text: "Data excluded from vendor training", value: -15 });}
+                }
+
+                if(policyConfig.security.mfaRequired) { score -= 15; mitigations.push({ text: "MFA required for access", value: -15 });}
+                if(policyConfig.security.rbacInPlace) { score -= 10; mitigations.push({ text: "RBAC in place", value: -10 });}
+                if(policyConfig.security.humanInLoop) { score -= 20; mitigations.push({ text: "Human-in-the-loop for decisions", value: -20 });}
+                if(policyConfig.security.penTesting) { score -= 10; mitigations.push({ text: "Annual penetration testing", value: -10 });}
+                if(policyConfig.security.auditLogs) { score -= 10; mitigations.push({ text: "Immutable audit logs", value: -10 });}
+                if(policyConfig.security.sovereignCloud) { score -= 10; mitigations.push({ text: "UK/EU sovereign cloud storage", value: -10 });}
+                if(policyConfig.security.dsarProcess) { score -= 5; mitigations.push({ text: "DSAR process in place", value: -5 });}
+                if(policyConfig.security.encryptedAtRest) { score -= 5; mitigations.push({ text: "Data encrypted at rest", value: -5 });}
+                if(policyConfig.security.encryptedInTransit) { score -= 5; mitigations.push({ text: "Data encrypted in transit", value: -5 });}
+
+                let level, color, icon;
+                if (score < 25) { level = 'Low'; color = 'green'; icon = 'fa-check-circle';}
+                else if (score < 55) { level = 'Moderate'; color = 'amber'; icon = 'fa-exclamation-triangle';}
+                else { level = 'High'; color = 'red'; icon = 'fa-exclamation-circle';}
+                return { score: Math.round(score), level, color, icon, factors, mitigations };
+            };
+
+            const prepareReview = () => {
+                lastRiskProfile = calculateRiskProfile();
+                const primaryModelName = policyConfig.models.primary.model === 'Other' ? policyConfig.models.primary.customModel : policyConfig.models.primary.model;
+                const techSummary = policyConfig.models.isAutomationOnly ? `${(policyConfig.service.automationTools || []).join(', ') || 'Not specified'} (Automation)` : `${primaryModelName} (${policyConfig.models.primary.provider})`;
+                document.getElementById('reviewSummary').innerHTML = `<p><strong>Service:</strong> ${policyConfig.service.name || 'N/A'}</p><p><strong>Owner:</strong> ${policyConfig.service.owner || 'N/A'}</p><p><strong>Technology:</strong> ${techSummary}</p><p><strong>Use Case:</strong> ${policyConfig.template}</p>`;
+                const riskEl = document.getElementById('riskAssessment');
+                riskEl.className = `rounded-lg p-6 border-2 border-${lastRiskProfile.color}-500 bg-${lastRiskProfile.color}-50 dark:bg-${lastRiskProfile.color}-900/50 dark:border-${lastRiskProfile.color}-700`;
+                riskEl.innerHTML = `<div class="flex items-center justify-between mb-2"><h3 class="font-semibold text-slate-900 dark:text-slate-100 text-lg">Risk Assessment</h3><span class="text-xl font-bold text-${lastRiskProfile.color}-600 dark:text-${lastRiskProfile.color}-400 bg-${lastRiskProfile.color}-200 dark:bg-${lastRiskProfile.color}-500/20 px-4 py-1 rounded-full"><i class="fas ${lastRiskProfile.icon} mr-2"></i>${lastRiskProfile.level} Risk</span></div><p class="text-center text-slate-600 dark:text-slate-400">Final Score: <strong class="text-2xl text-slate-800 dark:text-slate-100">${lastRiskProfile.score}</strong></p>`;
+            };
+            
+            const populateAndShowScoreModal = () => {
+                const { score, factors, mitigations } = lastRiskProfile;
+                document.getElementById('modalFinalScore').textContent = score;
+                const factorsEl = document.getElementById('modalRiskFactors');
+                const mitigationsEl = document.getElementById('modalMitigations');
+                factorsEl.innerHTML = factors.length ? factors.map(f => `<li class="flex justify-between"><span>${f.text}</span><span class="font-semibold text-red-600 dark:text-red-400">+${f.value}</span></li>`).join('') : '<li class="text-slate-500 dark:text-slate-400">No specific risk factors identified.</li>';
+                mitigationsEl.innerHTML = mitigations.length ? mitigations.map(m => `<li class="flex justify-between"><span>${m.text}</span><span class="font-semibold text-green-600 dark:text-green-400">${m.value}</span></li>`).join('') : '<li class="text-slate-500 dark:text-slate-400">No specific mitigations enabled.</li>';
+                document.getElementById('scoreBreakdownModal').classList.remove('hidden');
+            };
+
+            const updateStepUI = () => {
+                document.querySelectorAll('.step-content').forEach(c => c.classList.remove('active'));
+                document.getElementById(`step${currentStep}-content`).classList.add('active');
+                document.querySelectorAll('.step-indicator-container').forEach((container, index) => {
+                    const stepNum = index + 1;
+                    const indicator = container.querySelector('.step-indicator');
+                    indicator.classList.remove('active', 'completed');
+                    container.classList.remove('completed');
+                    if (stepNum < currentStep) {
+                        indicator.classList.add('completed');
+                        container.classList.add('completed');
+                    }
+                    else if (stepNum === currentStep) {
+                        indicator.classList.add('active');
+                    }
+                });
+                document.getElementById('prevBtn').classList.toggle('invisible', currentStep === 1);
+                const navButtons = document.getElementById('nextBtn').parentElement.parentElement;
+                navButtons.querySelector('#nextBtn').classList.toggle('hidden', currentStep === TOTAL_STEPS);
+                navButtons.querySelector('#viewScoreBtn').classList.toggle('hidden', currentStep !== TOTAL_STEPS);
+                navButtons.querySelector('#completeBtn').classList.toggle('hidden', currentStep !== TOTAL_STEPS);
+            };
+            
+            const toggleConditionalSections = () => {
+                const isAutomation = policyConfig.models?.isAutomationOnly;
+                document.getElementById('aiModelSection')?.classList.toggle('visible', !isAutomation);
+                document.getElementById('automationGuidanceSection')?.classList.toggle('visible', isAutomation);
+                document.getElementById('fallbackModelSection')?.classList.toggle('visible', policyConfig.models?.fallback.enabled && !isAutomation);
+                document.getElementById('llmMitigationsSection')?.classList.toggle('visible', !isAutomation);
+
+                const primaryModelSelect = document.querySelector('[name="models.primary.model"]');
+                const primaryCustomInput = document.querySelector('[name="models.primary.customModel"]');
+                if(primaryModelSelect) primaryCustomInput.classList.toggle('hidden', primaryModelSelect.value !== 'Other');
+                
+                const fallbackModelSelect = document.querySelector('[name="models.fallback.model"]');
+                const fallbackCustomInput = document.querySelector('[name="models.fallback.customModel"]');
+                if(fallbackModelSelect) fallbackCustomInput.classList.toggle('hidden', fallbackModelSelect.value !== 'Other');
+            };
+
+            const generatePdf = async () => {
+                if(currentStep !== TOTAL_STEPS) prepareReview();
+                const certificate = document.getElementById('pdf-certificate');
+                certificate.style.display = 'block';
+
+                const risk = lastRiskProfile;
+                const primaryModelName = policyConfig.models.primary.model === 'Other' ? policyConfig.models.primary.customModel : policyConfig.models.primary.model;
+                const techSummary = policyConfig.models.isAutomationOnly ? `${(policyConfig.service.automationTools || []).join(', ') || 'Not specified'} (Automation)` : `${primaryModelName} (${policyConfig.models.primary.provider})`;
+                
+                const allMitigations = risk.mitigations.map(m => m.text);
+
+                document.getElementById('pdf-date').textContent = new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' });
+                document.getElementById('pdf-service-name').textContent = policyConfig.service.name || 'Not Specified';
+                document.getElementById('pdf-owner').textContent = policyConfig.service.owner || 'Not Specified';
+                document.getElementById('pdf-purpose').textContent = policyConfig.service.purpose || 'Not Specified';
+                document.getElementById('pdf-lawful-basis').textContent = policyConfig.privacy.lawfulBasis.replace('-', ' ');
+                document.getElementById('pdf-data-types').textContent = (policyConfig.privacy.sensitiveData.map(s => s.replace('-',' ')).join(', ') || 'None');
+                document.getElementById('pdf-retention').textContent = `Input: ${policyConfig.privacy.inputRetention}, Output: ${policyConfig.privacy.outputRetention}`;
+                document.getElementById('pdf-model').textContent = techSummary;
+                document.getElementById('pdf-mitigations').textContent = allMitigations.join(', ') || 'None specified';
+                document.getElementById('pdf-risk-level').textContent = `${risk.level} (Score: ${risk.score})`;
+                
+                const riskBox = document.getElementById('pdf-risk-box');
+                const riskLevelEl = document.getElementById('pdf-risk-level');
+                const colorMap = { 'Low': '#10b981', 'Moderate': '#f59e0b', 'High': '#ef4444' };
+                riskBox.style.borderColor = colorMap[risk.level];
+                riskLevelEl.style.color = colorMap[risk.level];
+                
+                await html2canvas(certificate, { scale: 2, useCORS: true }).then(canvas => {
+                    const imgData = canvas.toDataURL('image/jpeg', 0.85);
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+                    const filename = `AI_Transparency_Certificate_${(policyConfig.service.name || 'Service').replace(/\s/g, '_')}.pdf`;
+                    pdf.save(filename);
+                });
+
+                certificate.style.display = 'none';
+            };
+
+            // --- EVENT LISTENERS & INITIALISATION ---
+            const themeToggle = document.getElementById('themeToggleBtn');
+            const sunIcon = 'fa-sun';
+            const moonIcon = 'fa-moon';
+
+            themeToggle.addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark');
+                if (document.documentElement.classList.contains('dark')) {
+                    localStorage.setItem('theme', 'dark');
+                    themeToggle.querySelector('i').className = `fas ${sunIcon}`;
+                } else {
+                    localStorage.setItem('theme', 'light');
+                    themeToggle.querySelector('i').className = `fas ${moonIcon}`;
+                }
+            });
+            
+            form.addEventListener('input', updateConfigFromForm);
+            document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
+            document.getElementById('importFile').addEventListener('change', (e) => {
+                if (!e.target.files.length) return;
+                const reader = new FileReader();
+                reader.onload = (event) => importPolicy(event.target.result);
+                reader.readAsText(e.target.files[0]);
+                e.target.value = '';
+            });
+
+            document.getElementById('nextBtn').addEventListener('click', () => { if (currentStep < TOTAL_STEPS) { currentStep++; if(currentStep === TOTAL_STEPS) prepareReview(); updateStepUI(); } });
+            document.getElementById('prevBtn').addEventListener('click', () => { if (currentStep > 1) { currentStep--; if(currentStep === TOTAL_STEPS) prepareReview(); updateStepUI(); }});
+            document.getElementById('completeBtn').addEventListener('click', generatePdf);
+            document.getElementById('downloadPdfBtn').addEventListener('click', generatePdf);
+            document.getElementById('downloadContractBtn').addEventListener('click', () => {
+                 const blob = new Blob([generateYAML(policyConfig)], { type: 'text/yaml' });
+                 const url = URL.createObjectURL(blob);
+                 const a = document.createElement('a');
+                 a.href = url;
+                 a.download = `${(policyConfig.service.name || 'ai-policy').replace(/\s/g, '_')}.yaml`;
+                 a.click();
+                 URL.revokeObjectURL(url);
+            });
+            document.getElementById('viewScoreBtn').addEventListener('click', populateAndShowScoreModal);
+            document.getElementById('closeScoreModalBtn').addEventListener('click', () => document.getElementById('scoreBreakdownModal').classList.add('hidden'));
+
+            document.getElementById('progressBar').addEventListener('click', (e) => {
+                const container = e.target.closest('.step-indicator-container');
+                if (container && container.classList.contains('completed')) {
+                    currentStep = parseInt(container.dataset.step, 10);
+                    if(currentStep === TOTAL_STEPS) prepareReview();
+                    updateStepUI();
+                }
+            });
+
+            document.getElementById('resetBtn').addEventListener('click', () => {
+                if(confirm('Are you sure you want to start over? All current progress will be lost.')) {
+                    handleTemplateChange('custom');
+                    currentStep = 1;
+                    updateStepUI();
+                    window.scrollTo(0, 0);
+                }
+            });
+            
+            // INITIALISATION
+            if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                themeToggle.querySelector('i').className = `fas ${sunIcon}`;
+            } else {
+                 themeToggle.querySelector('i').className = `fas ${moonIcon}`;
+            }
+
+            const commonTools = [{ name: 'Power Automate', icon: 'fa-bolt' },{ name: 'UiPath', icon: 'fa-robot' },{ name: 'Salesforce Flow', icon: 'fa-cloud' },{ name: 'Zapier', icon: 'fa-random' }];
+            document.getElementById('automationToolButtons').innerHTML = commonTools.map(t => `<button type="button" data-tool="${t.name}" class="selection-btn text-left px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition"><i class="fas ${t.icon} text-slate-400 dark:text-slate-500 mr-2 w-4 text-center"></i>${t.name}</button>`).join('');
+
+            const commonSystems = ['Dynamics', 'SAP', 'Integra', 'Co-Pilot', 'ODOO', 'Power BI', 'Excel', 'Outlook', 'Word', 'Adobe', 'Chrome', 'Edge'];
+            document.getElementById('systemSelectionButtons').innerHTML = commonSystems.map(s => `<button type="button" data-system="${s}" class="selection-btn text-xs text-center px-2 py-2 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition">${s}</button>`).join('');
+
+            handleTemplateChange('custom');
+        });
+    </script>
+</body>
+</html>
