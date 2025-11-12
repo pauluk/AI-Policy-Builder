@@ -264,7 +264,7 @@
                                 <label class="switch"><input type="checkbox" id="supplierCompliant" name="supplierCompliant" data-mitigation="0"><span class="slider round"></span></label>
                                 <div class="label-group"><label>Has the supplier confirmed its data use complies with government policy?</label><span class="help-icon">?</span></div>
                             </div>
-                            <p class="help-text hidden">The GCS policy requires that all third-party suppliers have appropriate data sharing and security agreements in place. Answering 'No' to this represents a significant compliance risk.</p>
+                            <p class="help-text hidden">The GDS policy requires that all third-party suppliers have appropriate data sharing and security agreements in place. Answering 'No' to this represents a significant compliance risk.</p>
                         </div>
                     </div>
                 </section>
@@ -354,7 +354,7 @@
                                 <label class="switch"><input type="checkbox" id="publicFacing" name="publicFacing" data-mitigation="0"><span class="slider round"></span></label>
                                 <div class="label-group"><label>Are users clearly notified they are interacting with an AI?</label><span class="help-icon">?</span></div>
                             </div>
-                             <p class="help-text hidden">A key principle of the GCS policy is transparency. Users must not be misled into thinking they are interacting with a human. Answering 'No' to this is a significant compliance risk.</p>
+                             <p class="help-text hidden">A key principle of the GDS policy is transparency. Users must not be misled into thinking they are interacting with a human. Answering 'No' to this is a significant compliance risk.</p>
                         </div>
                         <div class="form-group">
                             <div class="switch-container">
@@ -510,7 +510,7 @@
         </div>
         <div id="certScoreDisplay"><p>Overall Risk Score</p><div id="certScoreLevel"></div></div>
         <div id="certRationale"><h3>Rationale for Score</h3><ul id="certRationaleList"></ul></div>
-        <div id="certFooter"><p>This certificate confirms that a risk assessment has been completed in accordance with the GCS Generative AI Policy and UK Government AI guidelines.</p></div>
+        <div id="certFooter"><p>This certificate confirms that a risk assessment has been completed in accordance with the GDS Generative AI Policy and UK Government AI guidelines.</p></div>
     </div>
 
     <script>
@@ -723,7 +723,7 @@
             
             if (isAiProject) {
                 const accuracyRisk = Math.round((data.accuracySlider - 50) * 0.3); if(accuracyRisk > 0) { score += accuracyRisk; breakdown.push({ factor: `High Accuracy Requirement (${data.accuracySlider}%)`, points: accuracyRisk, type: 'risk' }); }
-                if (!data.publicFacing) { score += 25; breakdown.push({ factor: 'GCS Risk: Users not notified of AI interaction', points: 25, type: 'risk' }); }
+                if (!data.publicFacing) { score += 25; breakdown.push({ factor: 'GDS Risk: Users not notified of AI interaction', points: 25, type: 'risk' }); }
                 if (!data.biasAssessed) { score += 15; breakdown.push({ factor: 'Risk: Source data not assessed for bias', points: 15, type: 'risk' }); }
                 if (!data.biasTesting) { score += 20; breakdown.push({ factor: 'High Risk: Model not tested for fairness', points: 20, type: 'risk' }); }
             }
