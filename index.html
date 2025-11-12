@@ -684,67 +684,69 @@
         // --- CORE LOGIC & FUNCTIONS ---
 
         function calculateRisk() {
-            let score = 5; 
-            const breakdown = [{ factor: 'Inherent Project Baseline', points: 5, type: 'risk' }]; 
-            const data = getFormData();
-            const isAiProject = data.tech_ai_models.length > 0;
-            
-            if (isAiProject) { score += 15; breakdown.push({ factor: 'Inherent Risk (AI Model Usage)', points: 15, type: 'risk' }); }
-            if (data.tech_workflows.length > 0) { score += 5; breakdown.push({ factor: 'Inherent Risk (Workflow/RPA Usage)', points: 5, type: 'risk' }); }
-            if (data.tech_transfer.length > 0) { score += 10; breakdown.push({ factor: 'Inherent Risk (Data Transfer)', points: 10, type: 'risk' }); }
-            
-            const dataTypeBtn = document.querySelector('#dataType .btn-selector.active'); 
-            let dataSensitivityRisk = 0; 
-            if (dataTypeBtn) { const [risk] = dataTypeBtn.dataset.value.split('_').slice(-1); dataSensitivityRisk = parseInt(risk); if (dataSensitivityRisk > 0) breakdown.push({ factor: `Data Sensitivity (${dataTypeBtn.textContent.trim()})`, points: dataSensitivityRisk, type: 'risk' }); }
-            
-            let decisionNatureRisk = 0; 
-            if (isAiProject) {
-                const decisionNatureBtn = document.querySelector('#decisionNature .btn-selector.active'); 
-                if (decisionNatureBtn) { const [risk] = decisionNatureBtn.dataset.value.split('_').slice(-1); decisionNatureRisk = parseInt(risk); if (decisionNatureRisk > 0) breakdown.push({ factor: `Decision Nature (${decisionNatureBtn.textContent.trim()})`, points: decisionNatureRisk, type: 'risk' }); }
-            }
-            
-            score += dataSensitivityRisk + decisionNatureRisk;
-            
-            if (isAiProject) {
-                if (dataSensitivityRisk >= 50 && decisionNatureRisk >= 30 && !data.humanInLoop) { const amplifiedRisk = 40; score += amplifiedRisk; breakdown.push({ factor: 'CRITICAL Amplifier: Special Category Data for subjective decisions without human oversight', points: amplifiedRisk, type: 'risk' }); }
-                else if (decisionNatureRisk >= 30 && !data.humanInLoop) { const amplifiedRisk = 30; score += amplifiedRisk; breakdown.push({ factor: 'Amplified Risk: Subjective decisions without Human-in-the-Loop oversight', points: amplifiedRisk, type: 'risk' }); }
-                if (decisionNatureRisk >= 30 && !data.explainability) { const amplifiedRisk = 15; score += amplifiedRisk; breakdown.push({ factor: 'Amplified Risk: Subjective decisions without explainability methods', points: amplifiedRisk, type: 'risk' }); }
-            }
-            
-            if (dataSensitivityRisk >= 30 && !data.rbacInPlace) { const amplifiedRisk = 25; score += amplifiedRisk; breakdown.push({ factor: 'Amplified Risk: Sensitive data without Role-Based Access Control', points: amplifiedRisk, type: 'risk' }); }
-            if (dataSensitivityRisk >= 30 && !data.encryptRest) { const amplifiedRisk = 20; score += amplifiedRisk; breakdown.push({ factor: 'Amplified Risk: Sensitive data not encrypted at rest', points: amplifiedRisk, type: 'risk' }); }
-            if (data.tech_transfer.includes('tf_api') && dataSensitivityRisk >= 25 && !data.apiSecured) { const amplifiedRisk = 25; score += amplifiedRisk; breakdown.push({ factor: 'CRITICAL Amplifier: Sensitive data transfer via unsecured API', points: amplifiedRisk, type: 'risk' }); }
+            let score = 5; 
+            const breakdown = [{ factor: 'Inherent Project Baseline', points: 5, type: 'risk' }]; 
+            const data = getFormData();
+            const isAiProject = data.tech_ai_models.length > 0;
+            
+            if (isAiProject) { score += 15; breakdown.push({ factor: 'Inherent Risk (AI Model Usage)', points: 15, type: 'risk' }); }
+            if (data.tech_workflows.length > 0) { score += 5; breakdown.push({ factor: 'Inherent Risk (Workflow/RPA Usage)', points: 5, type: 'risk' }); }
+            if (data.tech_transfer.length > 0) { score += 10; breakdown.push({ factor: 'Inherent Risk (Data Transfer)', points: 10, type: 'risk' }); }
+            
+            const dataTypeBtn = document.querySelector('#dataType .btn-selector.active'); 
+            let dataSensitivityRisk = 0; 
+            if (dataTypeBtn) { const [risk] = dataTypeBtn.dataset.value.split('_').slice(-1); dataSensitivityRisk = parseInt(risk); if (dataSensitivityRisk > 0) breakdown.push({ factor: `Data Sensitivity (${dataTypeBtn.textContent.trim()})`, points: dataSensitivityRisk, type: 'risk' }); }
+            
+            let decisionNatureRisk = 0; 
+            if (isAiProject) {
+                const decisionNatureBtn = document.querySelector('#decisionNature .btn-selector.active'); 
+          _B_     if (decisionNatureBtn) { const [risk] = decisionNatureBtn.dataset.value.split('_').slice(-1); decisionNatureRisk = parseInt(risk); if (decisionNatureRisk > 0) breakdown.push({ factor: `Decision Nature (${decisionNatureBtn.textContent.trim()})`, points: decisionNatureRisk, type: 'risk' }); }
+            }
+            
+            score += dataSensitivityRisk + decisionNatureRisk;
+            
+            if (isAiProject) {
+                if (dataSensitivityRisk >= 50 && decisionNatureRisk >= 30 && !data.humanInLoop) { const amplifiedRisk = 40; score += amplifiedRisk; breakdown.push({ factor: 'CRITICAL Amplifier: Special Category Data for subjective decisions without human oversight', points: amplifiedRisk, type: 'risk' }); }
+                else if (decisionNatureRisk >= 30 && !data.humanInLoop) { const amplifiedRisk = 30; score += amplifiedRisk; breakdown.push({ factor: 'Amplified Risk: Subjective decisions without Human-in-the-Loop oversight', points: amplifiedRisk, type: 'risk' }); }
+                if (decisionNatureRisk >= 30 && !data.explainability) { const amplifiedRisk = 15; score += amplifiedRisk; breakdown.push({ factor: 'Amplified Risk: Subjective decisions without explainability methods', points: amplifiedRisk, type: 'risk' }); }
+            }
+            
+            if (dataSensitivityRisk >= 30 && !data.rbacInPlace) { const amplifiedRisk = 25; score += amplifiedRisk; breakdown.push({ factor: 'Amplified Risk: Sensitive data without Role-Based Access Control', points: amplifiedRisk, type: 'risk' }); }
+            if (dataSensitivityRisk >= 30 && !data.encryptRest) { const amplifiedRisk = 20; score += amplifiedRisk; breakdown.push({ factor: 'Amplified Risk: Sensitive data not encrypted at rest', points: amplifiedRisk, type: 'risk' }); }
+            if (data.tech_transfer.includes('tf_api') && dataSensitivityRisk >= 25 && !data.apiSecured) { const amplifiedRisk = 25; score += amplifiedRisk; breakdown.push({ factor: 'CRITICAL Amplifier: Sensitive data transfer via unsecured API', points: amplifiedRisk, type: 'risk' }); }
 
-            if (data.involvesThirdParty) { 
-                score += 10; breakdown.push({ factor: 'Inherent Risk (Third-Party)', points: 10, type: 'risk' }); 
-                if (!data.onTenderList) { score += 20; breakdown.push({ factor: 'High Risk: Supplier is not on an approved framework', points: 20, type: 'risk' }); }
-                if (!data.supplierCompliant) { score += 40; breakdown.push({ factor: 'High Risk: Supplier not confirmed policy-compliant', points: 40, type: 'risk' }); }
-            }
-            
-            if (isAiProject) {
-                const accuracyRisk = Math.round((data.accuracySlider - 50) * 0.3); if(accuracyRisk > 0) { score += accuracyRisk; breakdown.push({ factor: `High Accuracy Requirement (${data.accuracySlider}%)`, points: accuracyRisk, type: 'risk' }); }
-                if (!data.publicFacing) { score += 25; breakdown.push({ factor: 'GDS Risk: Users not notified of AI interaction', points: 25, type: 'risk' }); }
-                if (!data.biasAssessed) { score += 15; breakdown.push({ factor: 'Risk: Source data not assessed for bias', points: 15, type: 'risk' }); }
-                if (!data.biasTesting) { score += 20; breakdown.push({ factor: 'High Risk: Model not tested for fairness', points: 20, type: 'risk' }); }
-            }
-            
-            document.querySelectorAll('#tech_transfer .btn-selector.active[data-risk]').forEach(el => { const risk = parseInt(el.dataset.risk); score += risk; breakdown.push({ factor: `Insecure Transfer (${el.textContent.trim()})`, points: risk, type: 'risk' }); });
+            if (data.involvesThirdParty) { 
+                score += 10; breakdown.push({ factor: 'Inherent Risk (Third-Party)', points: 10, type: 'risk' }); 
+                if (!data.onTenderList) { score += 20; breakdown.push({ factor: 'High Risk: Supplier is not on an approved framework', points: 20, type: 'risk' }); }
+                if (!data.supplierCompliant) { score += 40; breakdown.push({ factor: 'High Risk: Supplier not confirmed policy-compliant', points: 40, type: 'risk' }); }
+            }
+            
+            if (isAiProject) {
+                const accuracyRisk = Math.round((data.accuracySlider - 50) * 0.3); if(accuracyRisk > 0) { score += accuracyRisk; breakdown.push({ factor: `High Accuracy Requirement (${data.accuracySlider}%)`, points: accuracyRisk, type: 'risk' }); }
+                // --- THIS IS THE MODIFIED LINE ---
+                if (!data.publicFacing) { score += 50; breakdown.push({ factor: 'CRITICAL Risk: Users not notified of AI interaction', points: 50, type: 'risk' }); }
+                // --- END OF MODIFICATION ---
+                if (!data.biasAssessed) { score += 15; breakdown.push({ factor: 'Risk: Source data not assessed for bias', points: 15, type: 'risk' }); }
+                if (!data.biasTesting) { score += 20; breakdown.push({ factor: 'High Risk: Model not tested for fairness', points: 20, type: 'risk' }); }
+            }
+            
+            document.querySelectorAll('#tech_transfer .btn-selector.active[data-risk]').forEach(el => { const risk = parseInt(el.dataset.risk); score += risk; breakdown.push({ factor: `Insecure Transfer (${el.textContent.trim()})`, points: risk, type: 'risk' }); });
 
-            form.querySelectorAll('input[type=checkbox][data-mitigation]').forEach(el => { 
-                const isAiControl = el.closest('#aiSpecificQuestions');
-                if( (isAiProject && isAiControl) || !isAiControl ) {
-                    if (el.checked) { 
-                        const points = -parseInt(el.dataset.mitigation); 
-                        score += points; 
-                        const label = el.closest('.switch-container').querySelector('.label-group label').textContent; 
-                        breakdown.push({ factor: label, points: points, type: 'mitigation' }); 
-                    }
-                }
-            });
-            
-            const totalScore = Math.max(0, Math.min(100, Math.round(score))); 
-            return { score: totalScore, breakdown };
-        }
+            form.querySelectorAll('input[type=checkbox][data-mitigation]').forEach(el => { 
+                const isAiControl = el.closest('#aiSpecificQuestions');
+                if( (isAiProject && isAiControl) || !isAiControl ) {
+                    if (el.checked) { 
+                        const points = -parseInt(el.dataset.mitigation); 
+                        score += points; 
+                        const label = el.closest('.switch-container').querySelector('.label-group label').textContent;s
+                        breakdown.push({ factor: label, points: points, type: 'mitigation' }); 
+                    }
+                }
+            });
+            
+            const totalScore = Math.max(0, Math.min(100, Math.round(score))); 
+            return { score: totalScore, breakdown };
+        }
 
         function populateScoreModal(breakdown) { const tbody = document.getElementById('score-breakdown-body'); if (!tbody) return; tbody.innerHTML = ''; let total = 0; breakdown.forEach(item => { const row = tbody.insertRow(); row.insertCell().textContent = item.factor; const pointsCell = row.insertCell(); pointsCell.textContent = item.points > 0 ? `+${item.points}` : item.points; row.className = item.type === 'risk' ? 'risk-item' : 'mitigation-item'; total += item.points; }); const totalCell = document.getElementById('total-score-cell'); if (totalCell) totalCell.textContent = Math.max(0, Math.min(100, total)); }
         function updateRiskMeter(score) { const scoreEl = document.getElementById('risk-score'); const levelEl = document.getElementById('risk-level'); const indicatorEl = document.getElementById('risk-indicator'); if (!scoreEl || !levelEl || !indicatorEl) return; scoreEl.textContent = score; indicatorEl.style.left = `${score}%`; levelEl.className = 'risk-level'; if (score < 40) { levelEl.textContent = 'LOW'; levelEl.classList.add('risk-low'); } else if (score < 70) { levelEl.textContent = 'MODERATE'; levelEl.classList.add('risk-medium'); } else { levelEl.textContent = 'HIGH'; levelEl.classList.add('risk-high'); } }
