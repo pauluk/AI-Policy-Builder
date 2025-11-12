@@ -1,646 +1,890 @@
 
 <!DOCTYPE html>
-<html lang="en-GB">
-<head> 
+<html lang="en">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Policy Builder - Create Transparency Certificate</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <title>GDS Compliant AI Governance & Risk Assessment</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-        }
-    </script>
+    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Tinos:wght@400;700&display=swap');
-        html { scroll-behavior: smooth; }
-        body { font-family: 'Inter', sans-serif; }
-
-        .step-content { display: none; animation: fadeIn 0.5s ease-in-out; }
-        .step-content.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .step-indicator-container.completed { cursor: pointer; }
-        .step-indicator.active { background: #3b82f6; color: white; }
-        .step-indicator.completed { background: #10b981; color: white; }
-
-        .template-card { cursor: pointer; transition: all 0.2s ease-out; border: 2px solid #e5e7eb; position: relative; }
-        .dark .template-card { border-color: #4b5563; }
-        .template-card:hover { transform: translateY(-4px); box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-color: #93c5fd; }
-        .dark .template-card:hover { border-color: #60a5fa; }
-        input[type="radio"]:checked + .template-card {
-            border-color: #3b82f6; background: linear-gradient(to right, #eff6ff, #dbeafe);
-            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25); transform: translateY(-2px);
+        /* --- GDS Design System Theme --- */
+        :root {
+            --gds-blue: #1D70B8;
+            --gds-black: #0B0C0C;
+            --gds-grey-1: #F3F2F1;
+            --gds-grey-2: #B1B4B6;
+            --gds-grey-3: #505A5F;
+            --gds-green: #006435;
+            --gds-red: #D4351C;
+            --gds-white: #FFFFFF;
+            --gds-focus-yellow: #FFDD00;
         }
-        .dark input[type="radio"]:checked + .template-card {
-             border-color: #60a5fa; background: #1e293b;
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--gds-grey-1);
+            color: var(--gds-black);
+            margin: 0;
+            padding: 24px;
         }
-
-        .checkmark-container {
-            position: absolute; top: 1rem; right: 1rem; height: 1.75rem; width: 1.75rem; border-radius: 9999px;
-            display: flex; align-items: center; justify-content: center; color: white;
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            opacity: 0; transform: scale(0.5); background-color: #ffffff; border: 2px solid #e5e7eb;
+        .page-container {
+            display: flex;
+            gap: 24px;
         }
-        input[type="radio"]:checked + .template-card .checkmark-container {
-            opacity: 1; transform: scale(1); background-color: #3b82f6; border-color: #3b82f6;
+        main { flex: 3; background: var(--gds-white); padding: 5px 32px 32px 32px; border: 1px solid var(--gds-grey-2); }
+        aside { flex: 1; position: sticky; top: 24px; height: fit-content; background: var(--gds-white); padding: 32px; border: 1px solid var(--gds-grey-2); }
+        
+        h1 { font-size: 2.5rem; text-align: center; color: var(--gds-black); border-bottom: 10px solid var(--gds-blue); padding-bottom: 15px; }
+        .form-section { border-top: 2px solid var(--gds-grey-2); padding-top: 20px; margin-top: 30px; }
+        .form-section h2 { display: flex; align-items: center; gap: 12px; font-size: 1.8rem; margin: 0 0 24px 0; color: var(--gds-black); border-bottom: none; }
+        .form-section h2 svg { width: 32px; height: 32px; fill: var(--gds-black); }
+        h3 { font-size: 1.2rem; color: var(--gds-black); border-bottom: 1px solid var(--gds-grey-2); padding-bottom: 8px; margin-bottom: 15px; }
+        
+        .form-group { margin-bottom: 24px; }
+        label { font-weight: 700; font-size: 1.1rem; }
+        input[type="text"], textarea, select { width: 100%; padding: 10px; border: 2px solid var(--gds-black); border-radius: 0; box-sizing: border-box; font-size: 1rem; }
+        input[type="text"]:focus, textarea:focus, select:focus { outline: 3px solid var(--gds-focus-yellow); outline-offset: 0; border-color: var(--gds-black); }
+        textarea { min-height: 120px; resize: vertical; }
+
+        .icon { display: inline-block; vertical-align: middle; }
+        .label-group { display: flex; align-items: center; gap: 8px; margin-bottom: 8px;}
+        .help-icon { display: inline-block; width: 22px; height: 22px; border-radius: 50%; background-color: var(--gds-grey-3); color: var(--gds-white); text-align: center; font-weight: bold; line-height: 22px; cursor: pointer; user-select: none; font-size: 0.9rem;}
+        .help-text { font-size: 1rem; color: var(--gds-grey-3); margin-top: 8px; background: var(--gds-white); padding: 15px; border-left: 5px solid var(--gds-grey-2); }
+        .hidden { display: none; }
+        
+        .btn-selector-group { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+        .btn-selector { display: flex; align-items: center; gap: 10px; padding: 10px; background-color: var(--gds-grey-1); border: 2px solid var(--gds-grey-1); border-radius: 0; cursor: pointer; transition: all 0.2s ease; text-align: left; font-size: 1rem; font-weight: 700;}
+        .btn-selector:hover { border-color: var(--gds-blue); }
+        .btn-selector.active { background-color: var(--gds-blue); border-color: var(--gds-blue); color: var(--gds-white); }
+        .btn-selector svg { width: 24px; height: 24px; fill: var(--gds-black); transition: fill 0.2s; flex-shrink: 0; }
+        .btn-selector.active svg { fill: var(--gds-white); }
+        .other-text-input { margin-top: 10px; }
+        
+        .switch-container { display: flex; align-items: center; gap: 10px; }
+        .switch { position: relative; display: inline-block; width: 50px; height: 28px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--gds-grey-2); transition: .4s; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; }
+        input:checked + .slider { background-color: var(--gds-blue); }
+        input:checked + .slider:before { transform: translateX(22px); }
+        .slider.round { border-radius: 34px; }
+        .slider.round:before { border-radius: 50%; }
+
+        .pill-container { background-color: var(--gds-grey-1); padding: 15px; border: 2px solid var(--gds-grey-2); }
+        .slider-group { display: flex; align-items: center; gap: 15px; }
+        input[type="range"] {
+            --gradient-stop: 50%;
+            -webkit-appearance: none; appearance: none; width: 100%; height: 8px; background: linear-gradient(to right, var(--gds-blue) var(--gradient-stop), var(--gds-grey-2) var(--gradient-stop)); border-radius: 0; outline: none;
         }
-        .dark input[type="radio"]:checked + .template-card .checkmark-container { background-color: #60a5fa; border-color: #60a5fa; }
-
-        .tag { animation: popIn 0.3s ease-out; }
-        .selection-btn.selected { background-color: #eff6ff; border-color: #93c5fd; color: #1d4ed8; font-weight: 500; }
-        .dark .selection-btn.selected { background-color: #1e3a8a; border-color: #3b82f6; color: #eff6ff; }
-        @keyframes popIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
-
-        .conditional-section { transition: all 0.3s ease-out; overflow: hidden; max-height: 0; opacity: 0;}
-        .conditional-section.visible { max-height: 1000px; opacity: 1; }
-
-        #pdf-certificate {
-            font-family: 'Tinos', serif; display: none; width: 210mm; min-height: 297mm;
-            padding: 15mm; box-sizing: border-box; color: #333; position: absolute; left: -9999px;
-            background: white;
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 24px; height: 24px; background: var(--gds-black); border-radius: 0; cursor: pointer; margin-top: -8px; }
+        input[type="number"] { width: 80px; text-align: center; font-weight: bold; }
+        
+        aside h2 { margin-top: 0; text-align: center; }
+        #score-container { cursor: pointer; padding: 10px; transition: background-color 0.2s; border: 2px solid transparent; }
+        #score-container:hover { border-color: var(--gds-blue); }
+        #risk-meter { width: 100%; height: 20px; background: linear-gradient(to right, var(--gds-green), #FFBF47, var(--gds-red)); position: relative; }
+        #risk-indicator { position: absolute; top: -5px; width: 4px; height: 30px; background-color: var(--gds-black); transform: translateX(-50%); transition: left 0.5s ease; border: 2px solid var(--gds-white); }
+        #risk-summary { text-align: center; margin-top: 10px; }
+        #risk-score { font-size: 3em; font-weight: bold; color: var(--gds-black); }
+        #risk-level { font-size: 1.2em; font-weight: 700; padding: 4px 12px; color: var(--gds-white); }
+        .risk-low { background-color: var(--gds-green); }
+        .risk-medium { background-color: #FFBF47; color: var(--gds-black); }
+        .risk-high { background-color: var(--gds-red); }
+        
+        .modal-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); 
         }
+        .modal-overlay:not(.hidden) { display: flex; }
+        .modal-content { background: var(--gds-white); padding: 30px; border: 5px solid var(--gds-blue); width: 90%; max-width: 600px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); position: relative; max-height: 80vh; overflow-y: auto; }
+        .modal-content h2, .modal-content h3 { color: var(--gds-black); }
+        .modal-close { position: absolute; top: 15px; right: 15px; font-size: 1.5em; font-weight: bold; cursor: pointer; border: none; background: none; }
+        #score-breakdown-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        #score-breakdown-table th, #score-breakdown-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--gds-grey-2); }
+        #score-breakdown-table th { font-weight: 700; }
+        #score-breakdown-table .risk-item { color: var(--gds-red); font-weight: 700;}
+        #score-breakdown-table .mitigation-item { color: var(--gds-green); font-weight: 700;}
+        #prompt-display { background-color: var(--gds-grey-1); border: 2px solid var(--gds-grey-2); padding: 15px; max-height: 40vh; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word; font-family: monospace; }
+
+        .action-buttons button { font-size: 1rem; font-weight: 700; width: 100%; padding: 10px; border-radius: 0; border: none; cursor: pointer; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 0 #000; position: relative; }
+        .action-buttons button:active { top: 2px; box-shadow: none; }
+        .action-buttons .icon { width: 1.2em; height: 1.2em; }
+        #generatePdfBtn, #exportJsonBtn, #importJsonBtn, #generatePromptBtn { background-color: var(--gds-blue); color: var(--gds-white); }
+        #generatePdfBtn:hover, #exportJsonBtn:hover, #importJsonBtn:hover, #generatePromptBtn:hover { background-color: #003078; }
+        #clearDataBtn { background-color: var(--gds-red); color: var(--gds-white); box-shadow: 0 2px 0 #5f190c;}
+        #clearDataBtn:hover { background-color: #9f2715; }
+
+        footer { text-align: center; margin-top: 2rem; padding: 1rem; border-top: 1px solid var(--gds-grey-2); }
+        .footer-link { font-size: 1.1rem; font-weight: 700; color: var(--gds-blue); cursor: pointer; text-decoration: underline; }
+        
+        #certificateTemplate { display: none; /* Other certificate styles... */ }
+
+        @media (max-width: 900px) { .page-container { flex-direction: column; } aside { position: static; } }
     </style>
 </head>
-<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-300 transition-colors duration-300">
-    <header class="bg-white dark:bg-slate-800 shadow-sm dark:shadow-md border-b border-slate-200 dark:border-slate-700 sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center py-4">
-                <div class="flex items-center space-x-4">
-                    <div class="bg-blue-600 text-white p-2 rounded-lg"><i class="fas fa-robot text-xl"></i></div>
-                    <div>
-                        <h1 class="text-xl font-semibold text-slate-900 dark:text-slate-100">AI Policy Builder</h1>
-                        <p class="text-sm text-slate-600 dark:text-slate-400">Create your AI Transparency Certificate</p>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-3">
-                     <button id="themeToggleBtn" title="Toggle Theme" class="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 h-10 w-10 rounded-lg text-sm font-medium transition flex items-center justify-center">
-                        <i class="fas fa-moon"></i>
-                    </button>
-                     <button id="importBtn" title="Import Policy from YAML" class="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-lg text-sm font-medium transition">
-                        <i class="fas fa-upload mr-2"></i>Import
-                    </button>
-                    <input type="file" id="importFile" class="hidden" accept=".yaml, .yml">
-                     <button id="downloadPdfBtn" title="Download Certificate as PDF" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-                        <i class="fas fa-file-pdf mr-2"></i>PDF
-                    </button>
-                    <button id="downloadContractBtn" title="Export Policy as YAML" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-                        <i class="fas fa-download mr-2"></i>YAML
-                    </button>
-                </div>
-            </div>
-        </div>
-    </header>
+<body>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
-        <div id="progressBar" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6">
-            <div class="flex items-center justify-around flex-wrap">
-                 <div data-step="1" class="step-indicator-container flex items-center p-2"><div id="step1" class="step-indicator active w-10 h-10 rounded-full flex items-center justify-center font-semibold">1</div><div class="ml-3"><p class="text-sm font-medium text-slate-900 dark:text-slate-100">Use Case</p><p class="text-xs text-slate-500 dark:text-slate-400">Inherent risk</p></div></div><i class="fas fa-chevron-right text-slate-400 dark:text-slate-600 hidden md:block"></i>
-                <div data-step="2" class="step-indicator-container flex items-center p-2"><div id="step2" class="step-indicator w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center font-semibold text-slate-500 dark:text-slate-400">2</div><div class="ml-3"><p class="text-sm font-medium text-slate-900 dark:text-slate-100">Service</p><p class="text-xs text-slate-500 dark:text-slate-400">Basic details</p></div></div><i class="fas fa-chevron-right text-slate-400 dark:text-slate-600 hidden md:block"></i>
-                <div data-step="3" class="step-indicator-container flex items-center p-2"><div id="step3" class="step-indicator w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center font-semibold text-slate-500 dark:text-slate-400">3</div><div class="ml-3"><p class="text-sm font-medium text-slate-900 dark:text-slate-100">Data</p><p class="text-xs text-slate-500 dark:text-slate-400">Privacy controls</p></div></div><i class="fas fa-chevron-right text-slate-400 dark:text-slate-600 hidden md:block"></i>
-                <div data-step="4" class="step-indicator-container flex items-center p-2"><div id="step4" class="step-indicator w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center font-semibold text-slate-500 dark:text-slate-400">4</div><div class="ml-3"><p class="text-sm font-medium text-slate-900 dark:text-slate-100">Technology</p><p class="text-xs text-slate-500 dark:text-slate-400">AI/Automation</p></div></div><i class="fas fa-chevron-right text-slate-400 dark:text-slate-600 hidden md:block"></i>
-                <div data-step="5" class="step-indicator-container flex items-center p-2"><div id="step5" class="step-indicator w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center font-semibold text-slate-500 dark:text-slate-400">5</div><div class="ml-3"><p class="text-sm font-medium text-slate-900 dark:text-slate-100">Security</p><p class="text-xs text-slate-500 dark:text-slate-400">Mitigations</p></div></div><i class="fas fa-chevron-right text-slate-400 dark:text-slate-600 hidden md:block"></i>
-                <div data-step="6" class="step-indicator-container flex items-center p-2"><div id="step6" class="step-indicator w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center font-semibold text-slate-500 dark:text-slate-400">6</div><div class="ml-3"><p class="text-sm font-medium text-slate-900 dark:text-slate-100">Review</p><p class="text-xs text-slate-500 dark:text-slate-400">Final score</p></div></div>
-            </div>
-        </div>
-    
-        <div class="grid lg:grid-cols-3 gap-6 mt-6 mb-12">
-            <form id="policyForm" class="lg:col-span-2">
-                <div id="step1-content" class="step-content active bg-white dark:bg-slate-800 rounded-xl shadow-sm p-8"></div>
-                <div id="step2-content" class="step-content bg-white dark:bg-slate-800 rounded-xl shadow-sm p-8"></div>
-                <div id="step3-content" class="step-content bg-white dark:bg-slate-800 rounded-xl shadow-sm p-8"></div>
-                <div id="step4-content" class="step-content bg-white dark:bg-slate-800 rounded-xl shadow-sm p-8"></div>
-                <div id="step5-content" class="step-content bg-white dark:bg-slate-800 rounded-xl shadow-sm p-8"></div>
-                <div id="step6-content" class="step-content bg-white dark:bg-slate-800 rounded-xl shadow-sm p-8"></div>
+    <div class="page-container">
+        <main>
+            <form id="assessmentForm" autocomplete="off">
+                <h1>GDS Compliant AI Governance & Risk Assessment</h1>
                 
-                <div class="mt-8 flex justify-between items-center">
-                    <button type="button" id="prevBtn" class="bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-300 text-slate-700 px-6 py-2 rounded-lg font-medium transition invisible"><i class="fas fa-arrow-left mr-2"></i>Back</button>
-                    <div class="flex items-center">
-                        <button type="button" id="viewScoreBtn" class="bg-slate-500 hover:bg-slate-600 text-white px-6 py-3 rounded-lg font-medium transition hidden mr-3"><i class="fas fa-clipboard-list mr-2"></i>View Score Breakdown</button>
-                        <button type="button" id="completeBtn" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition hidden"><i class="fas fa-check mr-2"></i>Generate Certificate</button>
-                    </div>
-                    <button type="button" id="nextBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition">Next <i class="fas fa-arrow-right ml-2"></i></button>
+                 <div class="form-group">
+                    <label for="template-selector">Load Example Template</label>
+                    <select id="template-selector">
+                        <option value="blank">-- Start a New Assessment --</option>
+                        <optgroup label="Core Functions">
+                            <option value="finance">Finance: Automated Invoice Processing</option>
+                            <option value="accounting">Accounting: Expense Report Auditing</option>
+                            <option value="commercials">Commercials: Contract Risk Analysis</option>
+                            <option value="estates">Estates: Predictive Maintenance</option>
+                        </optgroup>
+                        <optgroup label="Additional Scenarios">
+                            <option value="hr">HR: CV Screening Assistant</option>
+                            <option value="comms">Comms: Social Media Analysis</option>
+                            <option value="operations">Operations: FOI Redaction Tool</option>
+                            <option value="policy">Policy: Evidence Synthesis Tool</option>
+                            <option value="it_helpdesk">IT: Helpdesk Automation</option>
+                            <option value="fraud">Fraud: Grant Anomaly Detection</option>
+                        </optgroup>
+                    </select>
                 </div>
-            </form>
-            <aside class="lg:col-span-1">
-                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 sticky top-24">
-                    <h3 class="font-semibold text-slate-900 dark:text-slate-100 flex items-center mb-4"><i class="fas fa-file-code text-slate-600 dark:text-slate-400 mr-2"></i>Live Preview (YAML)</h3>
-                    <div class="preview-panel bg-slate-800 dark:bg-slate-900 text-slate-200 rounded-lg p-4 text-xs font-mono max-h-[60vh] overflow-y-auto"><pre id="livePreview"></pre></div>
-                </div>
-            </aside>
-        </div>
-    </main>
 
-    <footer class="text-center py-8">
-        <button id="resetBtn" class="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 text-sm transition underline-offset-4 hover:underline">
-            <i class="fas fa-undo mr-1"></i>Start Over
-        </button>
+                <section class="form-section">
+                    <h2>
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                        <span>Project Team & Process</span>
+                    </h2>
+                    <div class="form-group">
+                        <label for="initiativeName">Initiative Name</label>
+                        <input type="text" id="initiativeName" name="initiativeName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="projectLead">Project Lead</label>
+                        <input type="text" id="projectLead" name="projectLead">
+                    </div>
+                    <div class="form-group">
+                        <label for="responsibleOwner">Designated Responsible Owner (Accountable)</label>
+                        <input type="text" id="responsibleOwner" name="responsibleOwner" placeholder="e.g., Head of Department">
+                    </div>
+                    <div class="form-group">
+                        <label for="dpoContact">Data Protection Officer (DPO) Contact</label>
+                        <input type="text" id="dpoContact" name="dpoContact">
+                    </div>
+                     <div class="form-group">
+                        <label for="processDescription">Detailed Process Description</label>
+                        <textarea id="processDescription" name="processDescription" placeholder="Describe the end-to-end process this initiative automates or enhances..."></textarea>
+                    </div>
+                </section>
+                
+                <section class="form-section">
+                    <h2>
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5C13 2.12 11.88 1 10.5 1S8 2.12 8 3.5V5H4c-1.1 0-2 .9-2 2v4h1.5c1.93 0 3.5 1.57 3.5 3.5S5.43 18 3.5 18H2v4c0 1.1.9 2 2 2h4v-1.5c0-1.93 1.57-3.5 3.5-3.5s3.5 1.57 3.5 3.5V22h4c1.1 0 2-.9 2-2v-4h-1.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5H22V13c0-1.1-.9-2-2-2z"/></svg>
+                        <span>Technology & Suppliers</span>
+                    </h2>
+                    <h3>Business Applications</h3>
+                    <div id="tech_apps" class="btn-selector-group">
+                        <button type="button" id="app_sap" class="btn-selector multi-select">SAP</button>
+                        <button type="button" id="app_oracle" class="btn-selector multi-select">Oracle Fusion</button>
+                        <button type="button" id="app_workday" class="btn-selector multi-select">Workday</button>
+                        <button type="button" id="app_dynamics" class="btn-selector multi-select">MS Dynamics 365</button>
+                        <button type="button" id="app_servicenow" class="btn-selector multi-select">ServiceNow</button>
+                        <button type="button" id="app_zendesk" class="btn-selector multi-select">Zendesk</button>
+                        <button type="button" id="app_atlassian" class="btn-selector multi-select">Atlassian Suite</button>
+                        <button type="button" id="app_sharepoint" class="btn-selector multi-select">SharePoint</button>
+                        <button type="button" id="app_aws" class="btn-selector multi-select">AWS Platform</button>
+                        <button type="button" id="app_gcp" class="btn-selector multi-select">GCP Platform</button>
+                        <button type="button" id="app_custom" class="btn-selector multi-select">Custom Web App</button>
+                        <button type="button" id="app_other" class="btn-selector multi-select">Other</button>
+                    </div>
+                    <input type="text" id="app_other_text" name="app_other_text" class="other-text-input hidden" placeholder="Please specify other applications...">
+                    
+                    <h3 style="margin-top: 20px;">Workflow / RPA Programs</h3>
+                     <div id="tech_workflows" class="btn-selector-group">
+                        <button type="button" id="wf_powerautomate" class="btn-selector multi-select">Power Automate</button>
+                        <button type="button" id="wf_uipath" class="btn-selector multi-select">UiPath</button>
+                        <button type="button" id="wf_blueprism" class="btn-selector multi-select">Blue Prism</button>
+                        <button type="button" id="wf_script" class="btn-selector multi-select">Custom Script</button>
+                        <button type="button" id="wf_other" class="btn-selector multi-select">Other</button>
+                    </div>
+                    <input type="text" id="wf_other_text" name="wf_other_text" class="other-text-input hidden" placeholder="Please specify other workflow tools...">
+
+                    <h3 style="margin-top: 20px;">AI Models</h3>
+                     <div id="tech_ai_models" class="btn-selector-group">
+                        <button type="button" id="ai_openai" class="btn-selector multi-select">OpenAI GPT-4/etc</button>
+                        <button type="button" id="ai_gemini" class="btn-selector multi-select">Google Gemini</button>
+                        <button type="button" id="ai_azure" class="btn-selector multi-select">Azure AI Service</button>
+                        <button type="button" id="ai_custom" class="btn-selector multi-select">Custom Trained Model</button>
+                        <button type="button" id="ai_other" class="btn-selector multi-select">Other</button>
+                    </div>
+                    <input type="text" id="ai_other_text" name="ai_other_text" class="other-text-input hidden" placeholder="Please specify other AI models...">
+                    
+                    <h3 style="margin-top: 20px;">Data Transfer Methods</h3>
+                    <div id="tech_transfer" class="btn-selector-group">
+                        <button type="button" id="tf_api" class="btn-selector multi-select">API</button>
+                        <button type="button" id="tf_sftp" class="btn-selector multi-select">SFTP</button>
+                        <button type="button" id="tf_ftp" class="btn-selector multi-select" data-risk="10">FTP</button>
+                        <button type="button" id="tf_email" class="btn-selector multi-select" data-risk="10">Email</button>
+                        <button type="button" id="tf_post" class="btn-selector multi-select" data-risk="5">Post</button>
+                        <button type="button" id="tf_website" class="btn-selector multi-select">Website</button>
+                        <button type="button" id="tf_other" class="btn-selector multi-select">Other</button>
+                    </div>
+                    <input type="text" id="tf_other_text" name="tf_other_text" class="other-text-input hidden" placeholder="Please specify other transfer methods...">
+                    <div id="encryptionQuestions" class="hidden" style="margin-top: 20px;">
+                        <div class="form-group">
+                            <div class="switch-container">
+                                <label class="switch"><input type="checkbox" id="encryptTransit" name="encryptTransit" data-mitigation="15"><span class="slider round"></span></label>
+                                <div class="label-group"><label>Is data encrypted in transit?</label></div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div class="switch-container">
+                                <label class="switch"><input type="checkbox" id="encryptRest" name="encryptRest" data-mitigation="15"><span class="slider round"></span></label>
+                                <div class="label-group"><label>Is data encrypted at rest?</label></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 style="margin-top: 20px;">Supplier & Third-Party Engagement</h3>
+                    <div class="form-group">
+                        <div class="switch-container">
+                            <label class="switch"><input type="checkbox" id="involvesThirdParty" name="involvesThirdParty"><span class="slider round"></span></label>
+                            <div class="label-group"><label>Does this process involve any third-party supplier?</label></div>
+                        </div>
+                    </div>
+                    <div id="conditionalSupplierQuestions" class="hidden">
+                         <div class="form-group">
+                            <div class="switch-container">
+                                <label class="switch"><input type="checkbox" id="onTenderList" name="onTenderList" data-mitigation="15"><span class="slider round"></span></label>
+                                <div class="label-group"><label>Is the supplier on an approved government framework or tender list?</label></div>
+                            </div>
+                        </div>
+                         <div class="form-group">
+                            <div class="switch-container">
+                                <label class="switch"><input type="checkbox" id="supplierCompliant" name="supplierCompliant" data-mitigation="0"><span class="slider round"></span></label>
+                                <div class="label-group"><label>Has the supplier confirmed its data use complies with government policy?</label><span class="help-icon">?</span></div>
+                            </div>
+                            <p class="help-text hidden">The GCS policy requires that all third-party suppliers have appropriate data sharing and security agreements in place. Answering 'No' to this represents a significant compliance risk.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="form-section">
+                    <h2>
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+                        <span>Risk Assessment</span>
+                    </h2>
+                    
+                    <h3>General Risks & Controls</h3>
+                    <div class="form-group">
+                        <div class="label-group"><label>Data Sensitivity</label><span class="help-icon">?</span></div>
+                        <p class="help-text hidden">The sensitivity of the data is a primary driver of risk. Special Category data (e.g., health, biometrics) requires the highest level of scrutiny and a legal basis for processing.</p>
+                        <div id="dataType" class="btn-selector-group single-select">
+                            <button type="button" class="btn-selector active" data-value="public_0">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                                <span>Public / Open Data</span>
+                            </button>
+                            <button type="button" class="btn-selector" data-value="internal_10">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+                                <span>Internal Operational</span>
+                            </button>
+                            <button type="button" class="btn-selector" data-value="commercial_25">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+                                <span>Commercially Sensitive</span>
+                            </button>
+                            <button type="button" class="btn-selector" data-value="personal_30">
+                               <svg class="icon" viewBox="0 0 24 24"><path d="M12 5.9c1.16 0 2.1.94 2.1 2.1s-.94 2.1-2.1 2.1S9.9 9.16 9.9 8s.94-2.1 2.1-2.1m0 9c2.97 0 6.1 1.46 6.1 2.1v1.1H5.9V17c0-.64 3.13-2.1 6.1-2.1M12 4C9.79 4 8 5.79 8 8s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 9c-2.67 0-8 1.34-8 4v3h16v-3c0-2.66-5.33-4-8-4z"/></svg>
+                                <span>Personal Data (PII)</span>
+                            </button>
+                             <button type="button" class="btn-selector" data-value="special_50">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+                                <span>Special Category Data</span>
+                            </button>
+                        </div>
+                    </div>
+                     <div class="form-group">
+                         <div class="switch-container">
+                            <label class="switch"><input type="checkbox" id="apiSecured" name="apiSecured" data-mitigation="15"><span class="slider round"></span></label>
+                            <div class="label-group"><label>Are all API/integration points secured?</label><span class="help-icon">?</span></div>
+                        </div>
+                        <p class="help-text hidden">Ensures that data exchanged between systems is protected from interception, using methods like OAuth, API Keys, or mTLS.</p>
+                    </div>
+                    <div class="form-group">
+                        <div class="switch-container">
+                            <label class="switch"><input type="checkbox" id="rbacInPlace" name="rbacInPlace" data-mitigation="20"><span class="slider round"></span></label>
+                            <div class="label-group"><label>Is Role-Based Access Control (RBAC) in place?</label><span class="help-icon">?</span></div>
+                        </div>
+                        <p class="help-text hidden">Ensures that users can only access the information and functions essential to their role, minimizing the risk of unauthorized data access or system misuse.</p>
+                    </div>
+                    <div class="form-group">
+                        <div class="switch-container">
+                            <label class="switch"><input type="checkbox" id="hasPIIRemoval" name="hasPIIRemoval" data-mitigation="25"><span class="slider round"></span></label>
+                            <div class="label-group"><label><b>Rail Guard:</b> Is automated PII removal/anonymisation in place?</label></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="switch-container">
+                            <label class="switch"><input type="checkbox" id="staffTraining" name="staffTraining" data-mitigation="10"><span class="slider round"></span></label>
+                            <div class="label-group"><label>Have relevant staff been trained on this system?</label></div>
+                        </div>
+                    </div>
+
+                    <div id="aiSpecificQuestions" class="hidden">
+                        <h3 style="margin-top: 30px;">AI Model Specific Risks & Controls</h3>
+                        <div class="form-group">
+                            <div class="label-group"><label>Nature of Decision-Making</label><span class="help-icon">?</span></div>
+                            <p class="help-text hidden">Objective decisions follow clear rules (e.g., invoice matching). Subjective decisions require judgement (e.g., assessing merit), making them far riskier to automate due to the potential for unexplainable or biased outcomes.</p>
+                            <div id="decisionNature" class="btn-selector-group single-select">
+                                <button type="button" class="btn-selector active" data-value="objective_0">
+                                    <svg class="icon" viewBox="0 0 24 24"><path d="M8 18h3v-3h2v3h3v-5h-2v-3h-3V7h3V2H8v5h3v3H8v3H6v5h2z"/></svg>
+                                    <span>Objective / Rules-Based</span>
+                                </button>
+                                <button type="button" class="btn-selector" data-value="interpretive_15">
+                                   <svg class="icon" viewBox="0 0 24 24"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
+                                    <span>Knowledge-Based</span>
+                                </button>
+                                <button type="button" class="btn-selector" data-value="subjective_35">
+                                   <svg class="icon" viewBox="0 0 24 24"><path d="M12 3c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 14c-2.67 0-8 1.34-8 4v1h16v-1c0-2.66-5.33-4-8-4zm-6.29 1.29c.9-.53 2.06-1.04 3.52-1.39.53-.13 1.08-.2 1.67-.2s1.14.07 1.67.2c1.46.35 2.62.86 3.52 1.39.42.25.64.71.55 1.19-.09.48-.48.82-.95.82H6.69c-.47 0-.86-.34-.95-.82-.09-.48.13-.94.55-1.19z"/></svg>
+                                    <span>Subjective / Discretionary</span>
+                                </button>
+                            </div>
+                        </div>
+                         <div class="form-group">
+                            <div class="switch-container">
+                                <label class="switch"><input type="checkbox" id="publicFacing" name="publicFacing" data-mitigation="0"><span class="slider round"></span></label>
+                                <div class="label-group"><label>Are users clearly notified they are interacting with an AI?</label><span class="help-icon">?</span></div>
+                            </div>
+                             <p class="help-text hidden">A key principle of the GCS policy is transparency. Users must not be misled into thinking they are interacting with a human. Answering 'No' to this is a significant compliance risk.</p>
+                        </div>
+                        <div class="form-group">
+                            <div class="switch-container">
+                                <label class="switch"><input type="checkbox" id="loggingEnabled" name="loggingEnabled" data-mitigation="20"><span class="slider round"></span></label>
+                                <div class="label-group"><label>Are all AI-driven decisions and outputs logged for audit?</label><span class="help-icon">?</span></div>
+                            </div>
+                             <p class="help-text hidden">To ensure accountability, there must be a record of the AI's actions. This is crucial for investigating errors, challenging decisions, and demonstrating compliance.</p>
+                        </div>
+                         <div class="form-group">
+                            <div class="switch-container">
+                                <label class="switch"><input type="checkbox" id="appealMechanism" name="appealMechanism" data-mitigation="20"><span class="slider round"></span></label>
+                                <div class="label-group"><label>Is there a clear mechanism for human appeal and redress?</label></div>
+                            </div>
+                        </div>
+                         <div class="form-group">
+                            <div class="switch-container">
+                                <label class="switch"><input type="checkbox" id="biasAssessed" name="biasAssessed" data-mitigation="10"><span class="slider round"></span></label>
+                                <div class="label-group"><label>Has the source data been assessed for historical bias?</label></div>
+                            </div>
+                        </div>
+                         <div class="form-group">
+                            <div class="switch-container">
+                                <label class="switch"><input type="checkbox" id="biasTesting" name="biasTesting" data-mitigation="20"><span class="slider round"></span></label>
+                                <div class="label-group"><label>Has the model undergone specific fairness/bias testing?</label><span class="help-icon">?</span></div>
+                            </div>
+                            <p class="help-text hidden">Beyond assessing source data, this involves actively testing the model's performance across different demographic groups (where applicable) to ensure equitable outcomes.</p>
+                        </div>
+                         <div class="form-group">
+                            <div class="switch-container">
+                                <label class="switch"><input type="checkbox" id="explainability" name="explainability" data-mitigation="15"><span class="slider round"></span></label>
+                                <div class="label-group"><label>Is there a method to explain the AI's decisions (XAI)?</label><span class="help-icon">?</span></div>
+                            </div>
+                             <p class="help-text hidden">For complex models, having technical methods (like LIME or SHAP) to explain why a specific decision was made is a powerful tool for transparency and debugging.</p>
+                        </div>
+                         <div class="form-group">
+                            <div class="switch-container">
+                                <label class="switch"><input type="checkbox" id="humanInLoop" name="humanInLoop" data-mitigation="25"><span class="slider round"></span></label>
+                                <div class="label-group"><label>Is there meaningful Human-in-the-Loop oversight?</label></div>
+                            </div>
+                        </div>
+                        <div class="form-group pill-container">
+                            <div class="label-group"><label for="accuracySlider">Required Accuracy Threshold</label><span class="help-icon">?</span></div>
+                            <p class="help-text hidden">Define the minimum acceptable performance. For critical tasks, this should be very high. For low-stakes tasks, a lower accuracy may be acceptable.</p>
+                            <div class="slider-group">
+                                <input type="range" id="accuracySlider" name="accuracySlider" min="50" max="100" value="95" step="1" data-risk-multiplier="0.3">
+                                <input type="number" id="accuracyInput" min="50" max="100" value="95">
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </form>
+        </main>
+
+        <aside>
+            <h2>Risk Analysis</h2>
+            <div id="score-container" title="Click to see score breakdown">
+                <div id="risk-meter"><div id="risk-indicator" style="left: 0%;"></div></div>
+                <div id="risk-summary">
+                    <div id="risk-score">0</div>
+                    <div id="risk-level">LOW</div>
+                </div>
+            </div>
+            <hr style="border: none; border-top: 1px solid var(--gds-grey-2); margin-top: 20px;">
+            <h3>Actions</h3>
+            <div class="action-buttons">
+                <button id="generatePromptBtn"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.25a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM12 17.5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5a.75.75 0 01.75-.75zM4.75 12a.75.75 0 01.75-.75h3.5a.75.75 0 010 1.5h-3.5a.75.75 0 01-.75-.75zM15 12a.75.75 0 01.75-.75h3.5a.75.75 0 010 1.5h-3.5a.75.75 0 01-.75-.75zM7.06 7.06a.75.75 0 011.06-1.06l2.475 2.475a.75.75 0 01-1.06 1.06L7.06 7.06zm9.88 9.88a.75.75 0 01-1.06 1.06l-2.475-2.475a.75.75 0 011.06-1.06l2.475 2.475zM7.06 16.94a.75.75 0 01-1.06 1.06L3.525 15.53a.75.75 0 011.06-1.06l2.475 2.475zM15.53 3.525a.75.75 0 011.06 1.06L14.11 7.06a.75.75 0 01-1.06-1.06l2.475-2.475z"/></svg><span>Generate Transparency Prompt</span></button>
+                <button id="generatePdfBtn"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM9.5 15H7.5V9h2c.83 0 1.5.67 1.5 1.5v3c0 .83-.67 1.5-1.5 1.5zm3-2.5h-1.5V9H11v3.5zm3.5 2.5h-1.5V14h1.5v-1h-2.5V9H16c.83 0 1.5.67 1.5 1.5v1.5c0 .83-.67 1.5-1.5 1.5zM4 6H2v14c0 1.1.9 2 2 2h14v-2-H4V6z"/></svg><span>Generate Certificate</span></button>
+                <button id="exportJsonBtn"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg><span>Export Assessment</span></button>
+                <button id="importJsonBtn"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg><span>Import Assessment</span></button>
+                <hr style="border: none; border-top: 1px solid var(--gds-grey-2); margin: 20px 0;">
+                <button id="clearDataBtn"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg><span>Clear Saved Data</span></button>
+            </div>
+        </aside>
+    </div>
+
+    <footer style="text-align: center; margin-top: 2rem; padding: 1rem; border-top: 1px solid var(--gds-grey-2);">
+        <a id="openTransparencyModal" class="footer-link">Assessment Transparency: How the Score is Calculated</a>
     </footer>
 
-    <div id="scoreBreakdownModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl p-8 max-w-2xl mx-4 w-full">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100">Risk Score Breakdown</h2>
-                <button id="closeScoreModalBtn" class="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 text-3xl leading-none">&times;</button>
-            </div>
-            <div class="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg mb-6 text-center">
-                <p class="text-sm text-slate-600 dark:text-slate-400">Final Risk Score</p>
-                <p id="modalFinalScore" class="text-4xl font-bold text-slate-800 dark:text-slate-100"></p>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <h3 class="font-medium text-slate-800 dark:text-slate-200 border-b dark:border-slate-600 pb-2 mb-3 flex items-center"><i class="fas fa-arrow-up text-red-500 mr-2"></i>Risk Factors (Adds Points)</h3>
-                    <ul id="modalRiskFactors" class="space-y-2 text-sm"></ul>
-                </div>
-                <div>
-                    <h3 class="font-medium text-slate-800 dark:text-slate-200 border-b dark:border-slate-600 pb-2 mb-3 flex items-center"><i class="fas fa-arrow-down text-green-500 mr-2"></i>Mitigating Factors (Removes Points)</h3>
-                    <ul id="modalMitigations" class="space-y-2 text-sm"></ul>
-                </div>
+    <div id="scoreModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close" id="modalCloseBtn">&times;</button>
+            <h2>Risk Score Transparency Report</h2>
+            <p>The total risk score is calculated from the following factors. Mitigations are shown as negative points.</p>
+            <table id="score-breakdown-table">
+                <thead><tr><th>Factor</th><th>Points</th></tr></thead>
+                <tbody id="score-breakdown-body"></tbody>
+                <tfoot><tr><th><strong>Total Score</strong></th><th id="total-score-cell"><strong>0</strong></th></tr></tfoot>
+            </table>
+        </div>
+    </div>
+    
+    <div id="transparencyModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close" id="transparencyModalCloseBtn">&times;</button>
+            <h2>Assessment Transparency: How the Score is Calculated</h2>
+            <p>The risk score is determined by a logical model that considers inherent risks, specific choices, and the presence of critical mitigating controls. It is not just a simple sum of points.</p>
+            <h3>1. Inherent Technology Risks</h3>
+            <p>A baseline risk is added if the project uses certain technologies, acknowledging their inherent complexity:</p>
+            <ul>
+                <li><strong>AI Model Usage:</strong> +15 points</li>
+                <li><strong>Workflow/RPA Usage:</strong> +5 points</li>
+                <li><strong>Data Transfer:</strong> +10 points (plus more for insecure methods)</li>
+            </ul>
+            <h3>2. Core Risk Drivers</h3>
+            <p>The primary drivers of risk are the sensitivity of the data and the nature of the decisions being made. These form the main component of the score.</p>
+            <ul>
+                <li><strong>Data Sensitivity:</strong> Ranges from +0 for Public Data to +50 for Special Category Data.</li>
+                <li><strong>Decision Nature:</strong> Ranges from +0 for Objective tasks to +35 for Subjective/Discretionary decisions.</li>
+            </ul>
+            <h3>3. Risk Amplifiers (Toxic Combinations)</h3>
+            <p>The model's key feature is identifying high-risk combinations where the total risk is greater than the sum of its parts. These add significant penalty points:</p>
+            <ul>
+                <li><strong>CRITICAL: Special Category Data + Subjective Decision + No Human Oversight</strong> (+40 pts)</li>
+                <li><strong>CRITICAL: Sensitive Data Transfer via Unsecured API</strong> (+25 pts)</li>
+                <li>Sensitive Data without Role-Based Access Control (+25 pts)</li>
+                <li>Sensitive Data not Encrypted at Rest (+20 pts)</li>
+                <li>Subjective Decisions without Explainability (XAI) Methods (+15 pts)</li>
+            </ul>
+            <h3>4. Specific & Compliance Risks</h3>
+            <p>Additional points are added for specific compliance failures or high-risk choices:</p>
+            <ul>
+                <li>Supplier is not confirmed as policy-compliant: +40 points</li>
+                <li>Users are not notified they are interacting with an AI: +25 points</li>
+                <li>Supplier is not on an approved government framework: +20 points</li>
+            </ul>
+            <h3>5. Mitigations</h3>
+            <p>Finally, points are subtracted for each key control or mitigation you have in place, such as enabling human oversight, implementing security controls, and ensuring transparency.</p>
+        </div>
+    </div>
+
+    <div id="promptModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close" id="promptModalCloseBtn">&times;</button>
+            <h2>Generated Transparency Report Prompt</h2>
+            <p>Copy the text below and paste it into a large language model to generate a GDS-compliant HTML transparency report.</p>
+            <pre id="prompt-display"><code></code></pre>
+            <div class="action-buttons">
+                <button id="copyPromptBtn">
+                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                    <span>Copy to Clipboard</span>
+                </button>
             </div>
         </div>
     </div>
     
-    <div id="pdf-certificate"></div>
+    <div id="certificateTemplate">
+        <div id="certHeader"><h1>AI Governance & Risk Certificate</h1><p>Issued: <span id="certDate"></span></p></div>
+        <div id="certDetailsGrid">
+            <div><h3>Initiative Details</h3><p><strong>Name:</strong> <span id="certInitiativeName"></span></p><p><strong>Description:</strong> <span id="certProcessDescription"></span></p></div>
+            <div><h3>Project Team</h3><p><strong>Project Lead:</strong> <span id="certProjectLead"></span></p><p><strong>Responsible Owner:</strong> <span id="certResponsibleOwner"></span></p><p><strong>DPO Contact:</strong> <span id="certDpoContact"></span></p></div>
+            <div id="certTechStack" style="grid-column: 1 / -1;"></div>
+        </div>
+        <div id="certScoreDisplay"><p>Overall Risk Score</p><div id="certScoreLevel"></div></div>
+        <div id="certRationale"><h3>Rationale for Score</h3><ul id="certRationaleList"></ul></div>
+        <div id="certFooter"><p>This certificate confirms that a risk assessment has been completed in accordance with the GCS Generative AI Policy and UK Government AI guidelines.</p></div>
+    </div>
 
     <script>
-        // --- INJECT CONTENT FOR STEPS ---
-        const stepContents = {
-            1: `<h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">Select Primary Use Case</h2><p class="text-sm text-slate-600 dark:text-slate-400 mb-8">This helps determine the inherent risk of the service.</p><div class="grid md:grid-cols-2 gap-6"><div><input type="radio" name="template" id="template-finance" value="finance" class="hidden" /><label for="template-finance" class="template-card rounded-xl p-6 h-full flex flex-col"><div class="checkmark-container"><i class="fas fa-check"></i></div><div class="flex items-start justify-between mb-4"><div class="bg-green-100 dark:bg-green-900/50 p-3 rounded-lg"><i class="fas fa-chart-line text-green-600 dark:text-green-400 text-2xl"></i></div></div><h3 class="font-semibold text-slate-900 dark:text-slate-100 text-lg mb-2">Financial Analysis</h3></label></div><div><input type="radio" name="template" id="template-customer" value="customer" class="hidden" /><label for="template-customer" class="template-card rounded-xl p-6 h-full flex flex-col"><div class="checkmark-container"><i class="fas fa-check"></i></div><div class="flex items-start justify-between mb-4"><div class="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-lg"><i class="fas fa-headset text-blue-600 dark:text-blue-400 text-2xl"></i></div></div><h3 class="font-semibold text-slate-900 dark:text-slate-100 text-lg mb-2">Customer Service</h3></label></div><div><input type="radio" name="template" id="template-hr" value="hr" class="hidden" /><label for="template-hr" class="template-card rounded-xl p-6 h-full flex flex-col"><div class="checkmark-container"><i class="fas fa-check"></i></div><div class="flex items-start justify-between mb-4"><div class="bg-purple-100 dark:bg-purple-900/50 p-3 rounded-lg"><i class="fas fa-users text-purple-600 dark:text-purple-400 text-2xl"></i></div></div><h3 class="font-semibold text-slate-900 dark:text-slate-100 text-lg mb-2">HR & Recruitment</h3></label></div><div><input type="radio" name="template" id="template-clinical" value="clinical" class="hidden" /><label for="template-clinical" class="template-card rounded-xl p-6 h-full flex flex-col"><div class="checkmark-container"><i class="fas fa-check"></i></div><div class="flex items-start justify-between mb-4"><div class="bg-red-100 dark:bg-red-900/50 p-3 rounded-lg"><i class="fas fa-heartbeat text-red-600 dark:text-red-400 text-2xl"></i></div></div><h3 class="font-semibold text-slate-900 dark:text-slate-100 text-lg mb-2">Clinical Support</h3></label></div><div class="md:col-span-2"><input type="radio" name="template" id="template-custom" value="custom" class="hidden" checked /><label for="template-custom" class="template-card rounded-xl p-6 h-full flex items-center"><div class="checkmark-container"><i class="fas fa-check"></i></div><div class="bg-slate-100 dark:bg-slate-700 p-3 rounded-lg mr-4"><i class="fas fa-cog text-slate-600 dark:text-slate-400 text-2xl"></i></div><div><h3 class="font-semibold text-slate-900 dark:text-slate-100 text-lg">General / Custom</h3><p class="text-sm text-slate-500 dark:text-slate-400">For use cases not listed above.</p></div></label></div></div>`,
-            2: `<h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6">Service Information</h2><div class="space-y-6"><div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Service Name</label><input type="text" name="service.name" class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg" placeholder="e.g., Financial Report Generator"></div><div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Department/Owner</label><select name="service.owner" class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg"><option value="">Select department...</option><option value="Finance">Finance</option><option value="Human Resources">Human Resources</option><option value="IT">IT</option><option value="Operations">Operations</option><option value="Clinical Services">Clinical</option><option value="Marketing">Marketing</option><option value="Legal & Compliance">Legal</option></select></div><div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Primary Purpose</label><textarea name="service.purpose" rows="3" class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg" placeholder="Describe the main purpose of this service..."></textarea></div><div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Automation Tools Involved</label><div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3" id="automationToolButtons"></div><div class="flex items-center gap-2"><input type="text" id="automationToolInput" class="flex-grow px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg" placeholder="Add another tool..."><button type="button" id="addAutomationToolBtn" class="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg font-medium">Add</button></div><div id="automationToolTags" class="mt-3 flex flex-wrap gap-2"></div></div></div>`,
-            3: `<h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6">Data & Privacy Configuration</h2><div class="space-y-6"><div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Lawful Basis (GDPR)</label><select name="privacy.lawfulBasis" class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg"><option value="public-task">Public task</option><option value="legitimate-interests">Legitimate interests</option><option value="consent">Consent</option><option value="contract">Contract</option></select></div><div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Data Types Processed</label><div class="grid grid-cols-2 md:grid-cols-3 gap-3"><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg"><input type="checkbox" name="privacy.sensitiveData" value="health" class="mr-2 h-4 w-4 rounded text-red-600 focus:ring-red-500"><span class="text-sm font-medium text-red-700 dark:text-red-400">Health Data</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg"><input type="checkbox" name="privacy.sensitiveData" value="pii" class="mr-2 h-4 w-4 rounded text-orange-600 focus:ring-orange-500"><span class="text-sm font-medium text-orange-700 dark:text-orange-400">Personal Data (PII)</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg"><input type="checkbox" name="privacy.sensitiveData" value="financial" class="mr-2 h-4 w-4 rounded text-amber-600 focus:ring-amber-500"><span class="text-sm">Financial Data</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg"><input type="checkbox" name="privacy.sensitiveData" value="business-ip" class="mr-2 h-4 w-4 rounded text-yellow-600 focus:ring-yellow-500"><span class="text-sm">Business IP</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg"><input type="checkbox" name="privacy.sensitiveData" value="business-sops" class="mr-2 h-4 w-4 rounded text-sky-600 focus:ring-sky-500"><span class="text-sm">Business SOPs</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg"><input type="checkbox" name="privacy.sensitiveData" value="public-communications" class="mr-2 h-4 w-4 rounded text-blue-600 focus:ring-blue-500"><span class="text-sm">Public Communications</span></label></div></div><div class="grid md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Input Retention</label><select name="privacy.inputRetention" class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg"><option value="hash-only">Hash only (no storage)</option><option value="24-hours">24 hours</option><option value="7-days">7 days</option><option value="1-month">1 Month</option><option value="1-year">1 Year</option><option value="6-plus-1-year">6+1 Years</option><option value="indefinitely">Indefinitely</option></select></div><div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Output Retention</label><select name="privacy.outputRetention" class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg"><option value="no-storage">No storage</option><option value="24-hours">24 hours</option><option value="7-days">7 days</option><option value="1-month">1 Month</option><option value="1-year">1 Year</option><option value="6-plus-1-year">6+1 Years</option><option value="indefinitely">Indefinitely</option></select></div></div></div>`,
-            4: `<h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6">Technology Configuration</h2><div class="space-y-6"><div class="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg border dark:border-slate-700"><label class="flex items-center font-medium text-slate-800 dark:text-slate-200"><input type="checkbox" name="models.isAutomationOnly" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm">This is a non-AI automation only (no generative model)</span></label></div><div id="automationGuidanceSection" class="conditional-section bg-green-50 dark:bg-green-900/50 rounded-lg p-6 border border-green-200 dark:border-green-800"><h3 class="font-medium text-slate-900 dark:text-slate-100 flex items-center"><i class="fas fa-cogs text-green-600 dark:text-green-400 mr-2"></i>Automation Policy</h3><p class="text-sm text-slate-600 dark:text-slate-400 mt-2">Please ensure the specific automation tool(s) used are listed in the 'Automation Tools Involved' section in Step 2.</p></div><div id="aiModelSection" class="conditional-section space-y-6"><div class="bg-blue-50 dark:bg-blue-900/50 rounded-lg p-6 border border-blue-200 dark:border-blue-800"><h3 class="font-medium text-slate-900 dark:text-slate-100 mb-4 flex items-center"><i class="fas fa-robot text-blue-600 dark:text-blue-400 mr-2"></i>Primary Model</h3><div class="grid md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Provider</label><select name="models.primary.provider" class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg"><option>Azure OpenAI</option><option>AWS Bedrock</option><option>Google Vertex AI</option><option>On-premise</option></select></div><div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Model</label><select name="models.primary.model" class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg"><option>GPT-4o</option><option>GPT-4o-mini</option><option>Claude-3.5-sonnet</option><option>Llama-3.1-70B</option><option value="Other">Other (please specify)</option></select><input type="text" name="models.primary.customModel" placeholder="Specify custom model name" class="w-full mt-2 px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg hidden"></div></div></div><div><label class="flex items-center mb-4"><input type="checkbox" name="models.fallback.enabled" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">Enable fallback model</span></label><div id="fallbackModelSection" class="conditional-section bg-purple-50 dark:bg-purple-900/50 rounded-lg p-6 border border-purple-200 dark:border-purple-800"><h3 class="font-medium text-slate-900 dark:text-slate-100 mb-4 flex items-center"><i class="fas fa-shield-alt text-purple-600 dark:text-purple-400 mr-2"></i>Fallback Model</h3><div class="grid md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Provider</label><select name="models.fallback.provider" class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg"><option>Azure OpenAI</option><option>AWS Bedrock</option><option>On-premise</option></select></div><div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Model</label><select name="models.fallback.model" class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg"><option>GPT-4o-mini</option><option>Claude-3-haiku</option><option>Llama-3.1-8B</option><option value="Other">Other (please specify)</option></select><input type="text" name="models.fallback.customModel" placeholder="Specify custom model name" class="w-full mt-2 px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg hidden"></div></div></div></div></div><div class="space-y-6 mt-6"><h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100">Systems Involved in Process</h2><div id="systemSelectionButtons" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"></div><div class="flex items-center gap-2 pt-2"><input type="text" id="customSystemInput" class="flex-grow px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg" placeholder="Add another system..."><button type="button" id="addSystemBtn" class="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg font-medium">Add</button></div><div id="systemTags" class="mt-3 flex flex-wrap gap-2"></div></div>`,
-            5: `<h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6">Security & Process Controls</h2><div class="space-y-6"><div class="space-y-4"><h3 class="font-medium text-slate-900 dark:text-slate-100 mb-2 flex items-center"><i class="fas fa-lock text-slate-600 dark:text-slate-400 mr-2"></i>General Security Measures</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.mfaRequired" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">Access requires Multi-Factor Authentication (MFA)</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.rbacInPlace" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">Role-Based Access Control (RBAC) is enforced</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.encryptedAtRest" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">Data is encrypted at rest</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.encryptedInTransit" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">Data is encrypted in transit</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.humanInLoop" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">Human-in-the-loop for sensitive decisions</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.sovereignCloud" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">Data stored in UK/EU sovereign cloud</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.penTesting" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">Annual penetration testing performed</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.auditLogs" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">Immutable audit logs maintained</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.dsarProcess" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">DSAR process in place</span></label></div></div><div id="llmMitigationsSection" class="conditional-section space-y-4 pt-4"><h3 class="font-medium text-slate-900 dark:text-slate-100 mb-2 flex items-center"><i class="fas fa-cogs text-slate-600 dark:text-slate-400 mr-2"></i>LLM Data Handling Mitigations</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.piiRedaction" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">PII Redaction/Anonymisation before LLM</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.promptGuardrails" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">Prompt Engineering Guardrails in place</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.useGateway" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">Use of filtered Prompt/Response Gateway</span></label><label class="flex items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border dark:border-slate-700"><input type="checkbox" name="security.noTraining" class="mr-3 h-4 w-4 rounded text-blue-600"><span class="text-sm font-medium">Data excluded from vendor model training</span></label></div></div></div>`,
-            6: `<h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6">Review Certificate Details & Risk Score</h2><div class="space-y-6"><div class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-700/50 dark:to-slate-800/50 rounded-lg p-6 border dark:border-slate-700"><h3 class="font-medium text-slate-900 dark:text-slate-100 mb-3 flex items-center"><i class="fas fa-check-circle text-green-600 dark:text-green-400 mr-2"></i>Configuration Summary</h3><div id="reviewSummary" class="space-y-2 text-sm grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2"></div></div><div id="riskAssessment" class="rounded-lg p-6 border dark:border-slate-700"></div></div>`
+    // FULLY CONSOLIDATED SCRIPT
+    document.addEventListener('DOMContentLoaded', function () {
+        // --- DOM ELEMENT SELECTION ---
+        const form = document.getElementById('assessmentForm');
+        const accuracySlider = document.getElementById('accuracySlider');
+        const accuracyInput = document.getElementById('accuracyInput');
+        const scoreModal = document.getElementById('scoreModal');
+        const openModalBtn = document.getElementById('score-container');
+        const closeModalBtn = document.getElementById('modalCloseBtn');
+        const importInput = document.getElementById('importJsonInput');
+        const exportBtn = document.getElementById('exportJsonBtn');
+        const importBtn = document.getElementById('importJsonBtn');
+        const generatePdfBtn = document.getElementById('generatePdfBtn');
+        const templateSelector = document.getElementById('template-selector');
+        const involvesThirdPartySwitch = document.getElementById('involvesThirdParty');
+        const conditionalSupplierQuestions = document.getElementById('conditionalSupplierQuestions');
+        const clearDataBtn = document.getElementById('clearDataBtn');
+        const techTransferGroup = document.getElementById('tech_transfer');
+        const encryptionQuestions = document.getElementById('encryptionQuestions');
+        const transparencyModal = document.getElementById('transparencyModal');
+        const openTransparencyModalBtn = document.getElementById('openTransparencyModal');
+        const transparencyModalCloseBtn = document.getElementById('transparencyModalCloseBtn');
+        const promptModal = document.getElementById('promptModal');
+        const generatePromptBtn = document.getElementById('generatePromptBtn');
+        const promptModalCloseBtn = document.getElementById('promptModalCloseBtn');
+        const copyPromptBtn = document.getElementById('copyPromptBtn');
+        const promptDisplay = document.getElementById('prompt-display');
+        const aiSpecificQuestions = document.getElementById('aiSpecificQuestions');
+
+        // --- TEMPLATES DATA ---
+        const templates = {
+            finance: { initiativeName: "Finance: Automated Invoice Processing", projectLead: "John Doe", responsibleOwner: "Finance Director", dpoContact: "dpo@gov.uk", processDescription: "Automates the extraction of data from incoming PDF vendor invoices, matches them against purchase orders in SAP, and flags discrepancies for human review.", tech_apps: ["app_sap"], tech_workflows: ["wf_powerautomate"], tech_ai_models: ["ai_azure"], app_other_text: "", wf_other_text: "", ai_other_text: "", tf_other_text: "", involvesThirdParty: true, onTenderList: true, supplierCompliant: true, dataType: "commercial_25", decisionNature: "objective_0", accuracySlider: "98", publicFacing: false, loggingEnabled: true, appealMechanism: true, biasAssessed: true, biasTesting: true, explainability: false, humanInLoop: true, rbacInPlace: true, hasPIIRemoval: true, apiSecured: true, staffTraining: true, tech_transfer: ["tf_api"], encryptTransit: true, encryptRest: true },
+            accounting: { initiativeName: "Accounting: Expense Report Auditing", projectLead: "Jane Smith", responsibleOwner: "Head of Accounting", dpoContact: "dpo@gov.uk", processDescription: "Scans employee expense reports submitted via a custom web app to check for policy compliance (e.g., meal limits, approved vendors). Flags non-compliant items for manager approval.", tech_apps: ["app_custom"], tech_workflows: ["wf_script"], tech_ai_models: [], app_other_text: "", wf_other_text: "", ai_other_text: "", tf_other_text: "", involvesThirdParty: false, onTenderList: false, supplierCompliant: false, dataType: "internal_10", decisionNature: "interpretive_15", accuracySlider: "92", publicFacing: false, loggingEnabled: true, appealMechanism: true, biasAssessed: true, biasTesting: false, explainability: false, humanInLoop: true, rbacInPlace: true, hasPIIRemoval: false, apiSecured: true, staffTraining: true, tech_transfer: [], encryptTransit: false, encryptRest: false },
+            commercials: { initiativeName: "Commercials: Contract Risk Analysis", projectLead: "Peter Jones", responsibleOwner: "Chief Commercial Officer", dpoContact: "dpo@gov.uk", processDescription: "Uses a generative AI model to perform an initial review of draft supplier contracts, highlighting non-standard or high-risk clauses for review by the legal team.", tech_apps: ["app_sharepoint"], tech_workflows: [], tech_ai_models: ["ai_openai"], app_other_text: "", wf_other_text: "", ai_other_text: "", tf_other_text: "", involvesThirdParty: true, onTenderList: true, supplierCompliant: false, dataType: "commercial_25", decisionNature: "subjective_35", accuracySlider: "85", publicFacing: false, loggingEnabled: true, appealMechanism: true, biasAssessed: false, biasTesting: false, explainability: true, humanInLoop: true, rbacInPlace: true, hasPIIRemoval: false, apiSecured: false, staffTraining: false, tech_transfer: ["tf_website"], encryptTransit: true, encryptRest: true },
+            estates: { initiativeName: "Estates: Predictive Maintenance", projectLead: "Susan Williams", responsibleOwner: "Director of Estates", dpoContact: "dpo@gov.uk", processDescription: "Analyzes non-personal sensor data from HVAC units across government buildings to predict potential failures and automatically schedule preventative maintenance.", tech_apps: ["app_custom"], tech_workflows: ["wf_script"], tech_ai_models: ["ai_custom"], app_other_text: "", wf_other_text: "", ai_other_text: "", tf_other_text: "", involvesThirdParty: true, onTenderList: true, supplierCompliant: true, dataType: "public_0", decisionNature: "objective_0", accuracySlider: "80", publicFacing: false, loggingEnabled: true, appealMechanism: false, biasAssessed: true, biasTesting: false, explainability: false, humanInLoop: false, rbacInPlace: true, hasPIIRemoval: false, apiSecured: true, staffTraining: true, tech_transfer: ["tf_sftp"], encryptTransit: true, encryptRest: true },
+            hr: { initiativeName: "HR: CV Screening Assistant", projectLead: "David Chen", responsibleOwner: "Head of Recruitment", dpoContact: "dpo@gov.uk", processDescription: "Uses an AI model to perform an initial screen of CVs, ranking them against the job description. The top 20% are passed to a human recruiter for review. Aims to reduce manual screening time.", tech_apps: ["app_workday"], tech_workflows: [], tech_ai_models: ["ai_gemini"], app_other_text: "", wf_other_text: "", ai_other_text: "", tf_other_text: "", involvesThirdParty: true, onTenderList: true, supplierCompliant: false, dataType: "special_50", decisionNature: "subjective_35", accuracySlider: "90", publicFacing: false, loggingEnabled: true, appealMechanism: true, biasAssessed: false, biasTesting: false, explainability: false, humanInLoop: true, rbacInPlace: true, hasPIIRemoval: true, apiSecured: true, staffTraining: true, tech_transfer: ["tf_api"], encryptTransit: true, encryptRest: true },
+            comms: { initiativeName: "Comms: Social Media Analysis", projectLead: "Aisha Khan", responsibleOwner: "Head of Communications", dpoContact: "dpo@gov.uk", processDescription: "Analyzes public sentiment on Twitter/X regarding a new policy announcement, classifying posts as positive, negative, or neutral to inform the communications strategy.", tech_apps: ["app_other"], tech_workflows: [], tech_ai_models: ["ai_azure"], app_other_text: "Brandwatch", wf_other_text: "", ai_other_text: "", tf_other_text: "", involvesThirdParty: true, onTenderList: true, supplierCompliant: true, dataType: "public_0", decisionNature: "interpretive_15", accuracySlider: "88", publicFacing: true, loggingEnabled: false, appealMechanism: false, biasAssessed: true, biasTesting: true, explainability: true, humanInLoop: true, rbacInPlace: true, hasPIIRemoval: false, apiSecured: true, staffTraining: true, tech_transfer: ["tf_api"], encryptTransit: true, encryptRest: true },
+            operations: { initiativeName: "Operations: FOI Redaction Tool", projectLead: "Tom Richards", responsibleOwner: "Head of Operations", dpoContact: "dpo@gov.uk", processDescription: "An AI tool that automatically redacts PII and other sensitive information from documents before they are released under a Freedom of Information (FOI) request. All outputs are reviewed by a human.", tech_apps: ["app_custom"], tech_workflows: ["wf_script"], tech_ai_models: ["ai_custom"], app_other_text: "", wf_other_text: "", ai_other_text: "", tf_other_text: "", involvesThirdParty: false, onTenderList: false, supplierCompliant: false, dataType: "special_50", decisionNature: "objective_0", accuracySlider: "99", publicFacing: false, loggingEnabled: true, appealMechanism: true, biasAssessed: true, biasTesting: true, explainability: true, humanInLoop: true, rbacInPlace: true, hasPIIRemoval: true, apiSecured: true, staffTraining: true, tech_transfer: [], encryptTransit: false, encryptRest: false },
+            policy: { initiativeName: "Policy: Evidence Synthesis Tool", projectLead: "Eleanor Vance", responsibleOwner: "Head of Policy", dpoContact: "dpo@gov.uk", processDescription: "A generative AI tool that ingests and summarizes academic papers, consultation responses, and reports to identify key themes and evidence for policy development. All summaries are validated by policy advisors.", tech_apps: ["app_sharepoint", "app_atlassian"], tech_workflows: ["wf_script"], tech_ai_models: ["ai_openai"], app_other_text: "", wf_other_text: "", ai_other_text: "", tf_other_text: "", involvesThirdParty: true, onTenderList: true, supplierCompliant: false, dataType: "internal_10", decisionNature: "interpretive_15", accuracySlider: "90", publicFacing: false, loggingEnabled: true, appealMechanism: true, biasAssessed: true, biasTesting: true, explainability: true, humanInLoop: true, rbacInPlace: true, hasPIIRemoval: false, apiSecured: true, staffTraining: true, tech_transfer: ["tf_website"], encryptTransit: true, encryptRest: true },
+            it_helpdesk: { initiativeName: "IT: Helpdesk Automation", projectLead: "Ben Carter", responsibleOwner: "Head of IT Services", dpoContact: "dpo@gov.uk", processDescription: "A chatbot integrated into the staff intranet that handles first-line IT support queries like password resets and software access requests, escalating to a human agent via ServiceNow when it cannot resolve the issue.", tech_apps: ["app_servicenow"], tech_workflows: ["wf_powerautomate"], tech_ai_models: ["ai_azure"], app_other_text: "", wf_other_text: "", ai_other_text: "", tf_other_text: "", involvesThirdParty: true, onTenderList: true, supplierCompliant: true, dataType: "personal_30", decisionNature: "objective_0", accuracySlider: "95", publicFacing: true, loggingEnabled: true, appealMechanism: true, biasAssessed: true, biasTesting: false, explainability: false, humanInLoop: true, rbacInPlace: true, hasPIIRemoval: false, apiSecured: true, staffTraining: true, tech_transfer: ["tf_api"], encryptTransit: true, encryptRest: true },
+            fraud: { initiativeName: "Fraud: Grant Anomaly Detection", projectLead: "Maria Garcia", responsibleOwner: "Head of Fraud Prevention", dpoContact: "dpo@gov.uk", processDescription: "A machine learning model analyzes grant application data to identify anomalous patterns that may indicate fraudulent activity. Flagged applications are sent for mandatory human investigation.", tech_apps: ["app_custom", "app_aws"], tech_workflows: ["wf_script"], tech_ai_models: ["ai_custom"], app_other_text: "", wf_other_text: "", ai_other_text: "", tf_other_text: "", involvesThirdParty: false, onTenderList: false, supplierCompliant: false, dataType: "special_50", decisionNature: "interpretive_15", accuracySlider: "95", publicFacing: false, loggingEnabled: true, appealMechanism: true, biasAssessed: false, biasTesting: false, explainability: true, humanInLoop: true, rbacInPlace: true, hasPIIRemoval: false, apiSecured: true, staffTraining: true, tech_transfer: ["tf_api"], encryptTransit: true, encryptRest: true },
+            blank: {}
         };
-        Object.keys(stepContents).forEach(key => {
-            document.getElementById(`step${key}-content`).innerHTML = stepContents[key];
+        
+        // --- EVENT HANDLERS ---
+        
+        function resetForm() {
+            form.reset();
+            document.querySelectorAll('.btn-selector.active').forEach(b => b.classList.remove('active'));
+            document.querySelector('#dataType .btn-selector[data-value="public_0"]')?.classList.add('active');
+            document.querySelector('#decisionNature .btn-selector[data-value="objective_0"]')?.classList.add('active');
+            document.querySelectorAll('.other-text-input, #conditionalSupplierQuestions, #encryptionQuestions, #aiSpecificQuestions').forEach(el => el.classList.add('hidden'));
+            if(templateSelector) templateSelector.value = "blank";
+            updateAll();
+        }
+
+        if (clearDataBtn) {
+            clearDataBtn.addEventListener('click', () => {
+                if (confirm('Are you sure you want to clear all saved data from your browser? This cannot be undone.')) {
+                    localStorage.removeItem('aiAssessmentData');
+                    resetForm();
+                }
+            });
+        }
+        
+        if (templateSelector) {
+            templateSelector.addEventListener('change', (e) => {
+                const template = templates[e.target.value];
+                if (e.target.value === 'blank') {
+                    resetForm();
+                } else if (template) {
+                    loadFormData(template);
+                }
+            });
+        }
+        
+        document.querySelectorAll('.btn-selector-group').forEach(group => {
+            group.addEventListener('click', (e) => {
+                const button = e.target.closest('.btn-selector');
+                if (!button) return;
+                
+                if (group.classList.contains('single-select')) {
+                    if(button.classList.contains('active')) return;
+                    group.querySelector('.active')?.classList.remove('active');
+                    button.classList.add('active');
+                } else {
+                    button.classList.toggle('active');
+                }
+
+                if (button.id.endsWith('_other')) {
+                    const textInput = document.getElementById(button.id + '_text');
+                    if (textInput) {
+                        textInput.classList.toggle('hidden', !button.classList.contains('active'));
+                        if (!button.classList.contains('active')) textInput.value = '';
+                    }
+                }
+                
+                if (group.id === 'tech_ai_models') {
+                    const isAiSelected = group.querySelector('.btn-selector.active');
+                    aiSpecificQuestions.classList.toggle('hidden', !isAiSelected);
+                }
+                updateAll();
+            });
         });
-        document.getElementById('pdf-certificate').innerHTML = `<div style="border: 1px solid #ddd; padding: 2mm; background: #f9f9f9;"><div style="border: 4px double #3b82f6; padding: 10mm; text-align: center; background: white;"><div style="display: flex; align-items: center; justify-content: center; margin-bottom: 8mm;"><div style="background-color: #3b82f6; color: white; padding: 4mm; border-radius: 8px; font-size: 28px; margin-right: 5mm;"><i class="fas fa-robot"></i></div><div><h1 style="font-size: 24pt; color: #1e3a8a; margin: 0; font-weight: 700;">Certificate of AI Transparency</h1><p style="margin: 0; font-size: 11pt; color: #555;">Issued on: <span id="pdf-date"></span></p></div></div><p style="font-size: 12pt; margin: 8mm 0;">This certificate attests that the service detailed below has been configured in accordance with the specified transparency and safety protocols.</p><div style="text-align: left; border-top: 1px solid #ddd; margin-top: 8mm; padding-top: 8mm; font-size: 11pt;"><h2 style="font-size: 14pt; color: #1e3a8a; border-bottom: 1px solid #3b82f6; padding-bottom: 2mm; margin-bottom: 4mm;">Service Details</h2><p style="margin: 3mm 0;"><strong>Service Name:</strong> <span id="pdf-service-name"></span></p><p style="margin: 3mm 0;"><strong>Service Owner:</strong> <span id="pdf-owner"></span></p><p style="margin: 3mm 0;"><strong>Primary Purpose:</strong> <span id="pdf-purpose"></span></p></div><div style="text-align: left; border-top: 1px solid #ddd; margin-top: 8mm; padding-top: 8mm; font-size: 11pt;"><h2 style="font-size: 14pt; color: #1e3a8a; border-bottom: 1px solid #3b82f6; padding-bottom: 2mm; margin-bottom: 4mm;">Data & Privacy Controls</h2><p style="margin: 3mm 0;"><strong>Lawful Basis (GDPR):</strong> <span id="pdf-lawful-basis"></span></p><p style="margin: 3mm 0;"><strong>Data Types Processed:</strong> <span id="pdf-data-types"></span></p><p style="margin: 3mm 0;"><strong>Data Retention Policy:</strong> <span id="pdf-retention"></span></p></div><div style="text-align: left; border-top: 1px solid #ddd; margin-top: 8mm; padding-top: 8mm; font-size: 11pt;"><h2 style="font-size: 14pt; color: #1e3a8a; border-bottom: 1px solid #3b82f6; padding-bottom: 2mm; margin-bottom: 4mm;">Technology & Security</h2><p style="margin: 3mm 0;"><strong>Technology Stack:</strong> <span id="pdf-model"></span></p><p style="margin: 3mm 0;"><strong>Key Security Mitigations:</strong> <span id="pdf-mitigations"></span></p></div><div style="border: 2px solid; margin-top: 12mm; padding: 5mm; text-align: center;" id="pdf-risk-box"><h3 style="margin: 0 0 2mm 0; font-size: 12pt;">Final Assessed Risk Score</h3><p style="font-size: 20pt; font-weight: 700; margin: 0;" id="pdf-risk-level"></p></div></div></div>`;
-
-        // --- SCRIPT START ---
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- STATE & CONFIG ---
-            let currentStep = 1;
-            const TOTAL_STEPS = 6;
-            let policyConfig = {};
-            let lastRiskProfile = {};
-            const { jsPDF } = window.jspdf;
-            const jsyaml = window.jsyaml;
-
-            const baseTemplate = {
-                template: 'custom',
-                service: { name: "", owner: "", purpose: "", automationTools: [], involvedSystems: [] },
-                privacy: { lawfulBasis: 'public-task', sensitiveData: [], inputRetention: 'hash-only', outputRetention: 'no-storage' },
-                models: { isAutomationOnly: false, primary: { provider: 'Azure OpenAI', model: 'GPT-4o', customModel: '' }, fallback: { enabled: false, provider: 'Azure OpenAI', model: 'GPT-4o-mini', customModel: '' } },
-                security: { encryptedAtRest: true, encryptedInTransit: true, mfaRequired: false, rbacInPlace: false, audited: false, humanInLoop: false, piiRedaction: false, promptGuardrails: false, useGateway: false, noTraining: true, dsarProcess: false, sovereignCloud: false, penTesting: false, auditLogs: false },
-                settings: { factGrounding: true, contentFiltering: true, logPrompts: false, monitoring: true }
-            };
-
-            const templates = {
-                finance: { template: 'finance', service: { name: "Financial Analysis Bot", owner: "Finance", purpose: "To analyse financial documents and generate variance reports."}, privacy: { sensitiveData: ['pii', 'financial', 'business-ip'], inputRetention: '6-plus-1-year' }, security: { mfaRequired: true, rbacInPlace: true, penTesting: true } },
-                customer: { template: 'customer', service: { name: "Customer Service Assistant", owner: "Operations", purpose: "To classify support tickets and provide automated first-line responses."}, privacy: { sensitiveData: ['pii', 'public-communications'], inputRetention: '1-month' } },
-                hr: { template: 'hr', service: { name: "Recruitment CV Screener", owner: "Human Resources", purpose: "To screen CVs against job descriptions."}, privacy: { lawfulBasis: 'consent', sensitiveData: ['pii'], inputRetention: '1-year' }, models: { primary: { provider: 'On-premise' } }, security: { humanInLoop: true, rbacInPlace: true, piiRedaction: true } },
-                clinical: { template: 'clinical', service: { name: "Clinical Notes Summariser", owner: "Clinical Services", purpose: "To summarise patient notes for clinician review."}, privacy: { lawfulBasis: 'public-task', sensitiveData: ['pii', 'health'] }, security: { mfaRequired: true, rbacInPlace: true, auditLogs: true, humanInLoop: true, useGateway: true, piiRedaction: true, sovereignCloud: true } },
-                custom: { template: 'custom' }
-            };
-
-            const form = document.getElementById('policyForm');
-            
-            // --- CORE LOGIC - FULLY IMPLEMENTED ---
-            
-            const deepMerge = (target, ...sources) => {
-                for (const source of sources) {
-                    for (const key in source) {
-                        if (source[key] instanceof Object && !Array.isArray(source[key]) && key in target && target[key] instanceof Object) {
-                             deepMerge(target[key], source[key]);
-                        } else if (source[key] !== undefined) {
-                            target[key] = source[key];
-                        }
-                    }
-                }
-                return target;
-            };
-
-            const generateYAML = (data) => {
-                const cleanData = JSON.parse(JSON.stringify(data));
-                let yamlObject = {
-                    ai_policy_version: '2.7',
-                    template: cleanData.template,
-                    service: {
-                        ...cleanData.service,
-                        automationToolsCount: (cleanData.service.automationTools || []).length,
-                        involvedSystemsCount: (cleanData.service.involvedSystems || []).length,
-                    },
-                    privacy_controls: {
-                        lawful_basis_gdpr: cleanData.privacy.lawfulBasis,
-                        sensitive_data_types: cleanData.privacy.sensitiveData,
-                        retention_policy: { input: cleanData.privacy.inputRetention, output: cleanData.privacy.outputRetention }
-                    },
-                    technology: { type: cleanData.models.isAutomationOnly ? 'automation' : 'generative-ai' },
-                    security_controls: cleanData.security,
-                };
-
-                if (cleanData.models.isAutomationOnly) {
-                    yamlObject.technology.tools = cleanData.service.automationTools || [];
-                } else {
-                    yamlObject.technology.primary_model = { provider: cleanData.models.primary.provider, model: cleanData.models.primary.model === 'Other' ? cleanData.models.primary.customModel : cleanData.models.primary.model };
-                    if (cleanData.models.fallback.enabled) {
-                        yamlObject.technology.fallback_model = { provider: cleanData.models.fallback.provider, model: cleanData.models.fallback.model === 'Other' ? cleanData.models.fallback.customModel : cleanData.models.fallback.model };
-                    }
-                     yamlObject.ai_settings = cleanData.settings;
-                }
-                return jsyaml.dump(yamlObject, { indent: 2, skipInvalid: true });
-            };
-
-            const updateLivePreview = () => { document.getElementById('livePreview').textContent = generateYAML(policyConfig); };
-            
-            function createTagManager(configKey, buttonContainerId, textInputId, addBtnId, tagsContainerId) {
-                const btnContainer = document.getElementById(buttonContainerId);
-                const textInput = document.getElementById(textInputId);
-                const addBtn = document.getElementById(addBtnId);
-                const tagsContainer = document.getElementById(tagsContainerId);
-                
-                function render() {
-                    if (!tagsContainer) return;
-                    tagsContainer.innerHTML = '';
-                    (policyConfig.service[configKey] || []).forEach(item => {
-                        const tag = document.createElement('span');
-                        tag.className = 'tag bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-300 text-sm font-medium px-3 py-1 rounded-full flex items-center';
-                        tag.innerHTML = `${item} <button type="button" data-item="${item}" class="ml-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-bold">&times;</button>`;
-                        tagsContainer.appendChild(tag);
-                    });
-                    if (btnContainer) {
-                        btnContainer.querySelectorAll('button').forEach(btn => {
-                            btn.classList.toggle('selected', (policyConfig.service[configKey] || []).includes(btn.dataset.tool || btn.dataset.system));
-                        });
-                    }
-                }
-
-                function addItem(item) {
-                    if (item && !(policyConfig.service[configKey] || []).includes(item)) {
-                        if(!policyConfig.service[configKey]) policyConfig.service[configKey] = [];
-                        policyConfig.service[configKey].push(item);
-                        render();
-                        updateConfigFromForm();
-                    }
-                }
-
-                function removeItem(item) {
-                    policyConfig.service[configKey] = (policyConfig.service[configKey] || []).filter(i => i !== item);
-                    render();
-                    updateConfigFromForm();
-                }
-
-                if (addBtn) {
-                     addBtn.addEventListener('click', () => {
-                        addItem(textInput.value.trim());
-                        textInput.value = '';
-                    });
-                     textInput.addEventListener('keydown', (e) => {
-                        if (e.key === 'Enter') {
-                            e.preventDefault();
-                            addItem(textInput.value.trim());
-                            textInput.value = '';
-                        }
-                    });
-                }
-               
-                if (btnContainer) {
-                    btnContainer.addEventListener('click', (e) => {
-                        const btn = e.target.closest('button');
-                        if (!btn) return;
-                        const item = btn.dataset.tool || btn.dataset.system;
-                        if (!policyConfig.service[configKey]) policyConfig.service[configKey] = [];
-                        const index = policyConfig.service[configKey].indexOf(item);
-                        if (index > -1) {
-                            policyConfig.service[configKey].splice(index, 1);
-                        } else {
-                            policyConfig.service[configKey].push(item);
-                        }
-                        render();
-                        updateConfigFromForm();
-                    });
-                }
-
-                tagsContainer.addEventListener('click', (e) => {
-                    if (e.target.tagName === 'BUTTON') {
-                        removeItem(e.target.dataset.item);
-                    }
-                });
-                return { render };
-            }
-
-            const automationToolManager = createTagManager('automationTools', 'automationToolButtons', 'automationToolInput', 'addAutomationToolBtn', 'automationToolTags');
-            const systemManager = createTagManager('involvedSystems', 'systemSelectionButtons', 'customSystemInput', 'addSystemBtn', 'systemTags');
-
-            const updateConfigFromForm = () => {
-                const data = JSON.parse(JSON.stringify(policyConfig));
-                for (const el of form.elements) {
-                    if (!el.name) continue;
-                    const keys = el.name.split('.');
-                    let current = data;
-                    for (let i = 0; i < keys.length - 1; i++) {
-                        if (!current[keys[i]]) current[keys[i]] = {};
-                        current = current[keys[i]];
-                    }
-                    const key = keys[keys.length - 1];
-                    if (el.type === 'checkbox') {
-                         current[key] = el.checked;
-                    } else if (el.type !== 'radio' || (el.type === 'radio' && el.checked)) {
-                         current[key] = el.value;
-                    }
-                }
-                data.privacy.sensitiveData = Array.from(form.querySelectorAll('[name="privacy.sensitiveData"]:checked')).map(el => el.value);
-                policyConfig = data;
-                updateLivePreview();
-                toggleConditionalSections();
-            };
-
-            const updateFormFromConfig = () => {
-                for (const el of form.elements) {
-                    if (!el.name) continue;
-                    const keys = el.name.split('.');
-                    let value = policyConfig;
-                    try { keys.forEach(k => { value = value[k]; });
-                    } catch (e) { value = undefined; }
-                    
-                    if (value !== undefined && value !== null) {
-                        if (el.type === 'checkbox') el.checked = value;
-                        else if (el.type === 'radio') {
-                             const radioToSelect = form.querySelector(`[name="${el.name}"][value="${value}"]`);
-                             if(radioToSelect) radioToSelect.checked = true;
-                        }
-                        else el.value = value;
-                    }
-                }
-                form.querySelectorAll('[name="privacy.sensitiveData"]').forEach(el => { el.checked = (policyConfig.privacy.sensitiveData || []).includes(el.value); });
-                
-                automationToolManager.render();
-                systemManager.render();
-                updateLivePreview();
-                toggleConditionalSections();
-            };
-            
-            const handleTemplateChange = (templateName) => {
-                const base = JSON.parse(JSON.stringify(baseTemplate));
-                const templateData = JSON.parse(JSON.stringify(templates[templateName || 'custom']));
-                policyConfig = deepMerge({}, base, templateData);
-                updateFormFromConfig();
-            };
-
-            const dataRiskMap = { health: 60, pii: 45, financial: 35, 'business-ip': 30, 'business-sops': 10, 'public-communications': 5 };
-            const retentionRiskMap = { 'hash-only': -15, 'no-storage': -15, '24-hours': 1, '7-days': 3, '1-month': 8, '1-year': 25, '6-plus-1-year': 30, 'indefinitely': 50 };
-            const useCaseRiskMap = { finance: 15, clinical: 20, hr: 15, customer: 5, custom: 0 };
-
-            const calculateRiskProfile = () => {
-                let score = 0;
-                let factors = [];
-                let mitigations = [];
-
-                const useCaseScore = useCaseRiskMap[policyConfig.template] || 0;
-                if(useCaseScore > 0) { score += useCaseScore; factors.push({ text: `Inhererent risk for '${policyConfig.template}' use case`, value: useCaseScore }); }
-
-                const dataScores = (policyConfig.privacy.sensitiveData || [])
-                    .map(type => ({ type, score: dataRiskMap[type] || 0 }))
-                    .filter(d => d.score > 0)
-                    .sort((a, b) => b.score - a.score);
-
-                if (dataScores.length > 0) {
-                    let cumulativeDataScore = 0;
-                    dataScores.forEach((item, index) => {
-                        const weight = Math.pow(0.5, index);
-                        const weightedScore = item.score * weight;
-                        cumulativeDataScore += weightedScore;
-                        factors.push({
-                            text: `${index === 0 ? 'Highest risk' : 'Additional risk'} from ${item.type.replace('-', ' ')} data`,
-                            value: Math.round(weightedScore)
-                        });
-                    });
-                    score += cumulativeDataScore;
-                }
-
-                const systemCount = (policyConfig.service.involvedSystems || []).length;
-                if (systemCount > 1) {
-                    const systemScore = (systemCount-1) * 2;
-                    score += systemScore;
-                    factors.push({ text: `Process complexity (${systemCount} systems)`, value: systemScore });
-                }
-
-                const inputRetScore = retentionRiskMap[policyConfig.privacy.inputRetention] || 0;
-                if(inputRetScore > 0) { score += inputRetScore; factors.push({ text: "Input data retention policy", value: inputRetScore }); }
-                else if(inputRetScore < 0) { score += inputRetScore; mitigations.push({ text: "Minimal input data retention", value: inputRetScore }); }
-                const outputRetScore = retentionRiskMap[policyConfig.privacy.outputRetention] || 0;
-                if(outputRetScore > 0) { score += outputRetScore; factors.push({ text: "Output data retention policy", value: outputRetScore }); }
-                else if(outputRetScore < 0) { score += outputRetScore; mitigations.push({ text: "Minimal output data retention", value: outputRetScore }); }
-
-                if (policyConfig.models.isAutomationOnly) {
-                    score -= 20; mitigations.push({ text: "Standard automation (non-generative AI)", value: -20 });
-                } else {
-                    score += 20; factors.push({ text: "Use of Generative AI model", value: 20 });
-                    if(policyConfig.models.fallback.enabled) { score += 5; factors.push({ text: "Increased complexity from fallback model", value: 5 });}
-                    if (policyConfig.models.primary.provider?.toLowerCase().includes('on-premise')) { score -= 20; mitigations.push({ text: "On-premise model deployment", value: -20 }); }
-                    if(policyConfig.security.useGateway) { score -= 25; mitigations.push({ text: "Filtered prompt/response gateway", value: -25 });}
-                    else if(policyConfig.security.piiRedaction) { score -= 20; mitigations.push({ text: "PII Redaction before LLM", value: -20 });}
-                    if(policyConfig.security.promptGuardrails) { score -= 10; mitigations.push({ text: "Prompt engineering guardrails", value: -10 });}
-                    if(policyConfig.security.noTraining) { score -= 15; mitigations.push({ text: "Data excluded from vendor training", value: -15 });}
-                }
-
-                if(policyConfig.security.mfaRequired) { score -= 15; mitigations.push({ text: "MFA required for access", value: -15 });}
-                if(policyConfig.security.rbacInPlace) { score -= 10; mitigations.push({ text: "RBAC in place", value: -10 });}
-                if(policyConfig.security.humanInLoop) { score -= 20; mitigations.push({ text: "Human-in-the-loop for decisions", value: -20 });}
-                if(policyConfig.security.penTesting) { score -= 10; mitigations.push({ text: "Annual penetration testing", value: -10 });}
-                if(policyConfig.security.auditLogs) { score -= 10; mitigations.push({ text: "Immutable audit logs", value: -10 });}
-                if(policyConfig.security.sovereignCloud) { score -= 10; mitigations.push({ text: "UK/EU sovereign cloud storage", value: -10 });}
-                if(policyConfig.security.dsarProcess) { score -= 5; mitigations.push({ text: "DSAR process in place", value: -5 });}
-                if(policyConfig.security.encryptedAtRest) { score -= 5; mitigations.push({ text: "Data encrypted at rest", value: -5 });}
-                if(policyConfig.security.encryptedInTransit) { score -= 5; mitigations.push({ text: "Data encrypted in transit", value: -5 });}
-
-                let level, color, icon;
-                if (score < 25) { level = 'Low'; color = 'green'; icon = 'fa-check-circle';}
-                else if (score < 55) { level = 'Moderate'; color = 'amber'; icon = 'fa-exclamation-triangle';}
-                else { level = 'High'; color = 'red'; icon = 'fa-exclamation-circle';}
-                return { score: Math.round(score), level, color, icon, factors, mitigations };
-            };
-
-            const prepareReview = () => {
-                lastRiskProfile = calculateRiskProfile();
-                const primaryModelName = policyConfig.models.primary.model === 'Other' ? policyConfig.models.primary.customModel : policyConfig.models.primary.model;
-                const techSummary = policyConfig.models.isAutomationOnly ? `${(policyConfig.service.automationTools || []).join(', ') || 'Not specified'} (Automation)` : `${primaryModelName} (${policyConfig.models.primary.provider})`;
-                document.getElementById('reviewSummary').innerHTML = `<p><strong>Service:</strong> ${policyConfig.service.name || 'N/A'}</p><p><strong>Owner:</strong> ${policyConfig.service.owner || 'N/A'}</p><p><strong>Technology:</strong> ${techSummary}</p><p><strong>Use Case:</strong> ${policyConfig.template}</p>`;
-                const riskEl = document.getElementById('riskAssessment');
-                riskEl.className = `rounded-lg p-6 border-2 border-${lastRiskProfile.color}-500 bg-${lastRiskProfile.color}-50 dark:bg-${lastRiskProfile.color}-900/50 dark:border-${lastRiskProfile.color}-700`;
-                riskEl.innerHTML = `<div class="flex items-center justify-between mb-2"><h3 class="font-semibold text-slate-900 dark:text-slate-100 text-lg">Risk Assessment</h3><span class="text-xl font-bold text-${lastRiskProfile.color}-600 dark:text-${lastRiskProfile.color}-400 bg-${lastRiskProfile.color}-200 dark:bg-${lastRiskProfile.color}-500/20 px-4 py-1 rounded-full"><i class="fas ${lastRiskProfile.icon} mr-2"></i>${lastRiskProfile.level} Risk</span></div><p class="text-center text-slate-600 dark:text-slate-400">Final Score: <strong class="text-2xl text-slate-800 dark:text-slate-100">${lastRiskProfile.score}</strong></p>`;
-            };
-            
-            const populateAndShowScoreModal = () => {
-                const { score, factors, mitigations } = lastRiskProfile;
-                document.getElementById('modalFinalScore').textContent = score;
-                const factorsEl = document.getElementById('modalRiskFactors');
-                const mitigationsEl = document.getElementById('modalMitigations');
-                factorsEl.innerHTML = factors.length ? factors.map(f => `<li class="flex justify-between"><span>${f.text}</span><span class="font-semibold text-red-600 dark:text-red-400">+${f.value}</span></li>`).join('') : '<li class="text-slate-500 dark:text-slate-400">No specific risk factors identified.</li>';
-                mitigationsEl.innerHTML = mitigations.length ? mitigations.map(m => `<li class="flex justify-between"><span>${m.text}</span><span class="font-semibold text-green-600 dark:text-green-400">${m.value}</span></li>`).join('') : '<li class="text-slate-500 dark:text-slate-400">No specific mitigations enabled.</li>';
-                document.getElementById('scoreBreakdownModal').classList.remove('hidden');
-            };
-
-            const updateStepUI = () => {
-                document.querySelectorAll('.step-content').forEach(c => c.classList.remove('active'));
-                document.getElementById(`step${currentStep}-content`).classList.add('active');
-                document.querySelectorAll('.step-indicator-container').forEach((container, index) => {
-                    const stepNum = index + 1;
-                    const indicator = container.querySelector('.step-indicator');
-                    indicator.classList.remove('active', 'completed');
-                    container.classList.remove('completed');
-                    if (stepNum < currentStep) {
-                        indicator.classList.add('completed');
-                        container.classList.add('completed');
-                    }
-                    else if (stepNum === currentStep) {
-                        indicator.classList.add('active');
-                    }
-                });
-                document.getElementById('prevBtn').classList.toggle('invisible', currentStep === 1);
-                const navButtons = document.getElementById('nextBtn').parentElement.parentElement;
-                navButtons.querySelector('#nextBtn').classList.toggle('hidden', currentStep === TOTAL_STEPS);
-                navButtons.querySelector('#viewScoreBtn').classList.toggle('hidden', currentStep !== TOTAL_STEPS);
-                navButtons.querySelector('#completeBtn').classList.toggle('hidden', currentStep !== TOTAL_STEPS);
-            };
-            
-            const toggleConditionalSections = () => {
-                const isAutomation = policyConfig.models?.isAutomationOnly;
-                document.getElementById('aiModelSection')?.classList.toggle('visible', !isAutomation);
-                document.getElementById('automationGuidanceSection')?.classList.toggle('visible', isAutomation);
-                document.getElementById('fallbackModelSection')?.classList.toggle('visible', policyConfig.models?.fallback.enabled && !isAutomation);
-                document.getElementById('llmMitigationsSection')?.classList.toggle('visible', !isAutomation);
-
-                const primaryModelSelect = document.querySelector('[name="models.primary.model"]');
-                const primaryCustomInput = document.querySelector('[name="models.primary.customModel"]');
-                if(primaryModelSelect) primaryCustomInput.classList.toggle('hidden', primaryModelSelect.value !== 'Other');
-                
-                const fallbackModelSelect = document.querySelector('[name="models.fallback.model"]');
-                const fallbackCustomInput = document.querySelector('[name="models.fallback.customModel"]');
-                if(fallbackModelSelect) fallbackCustomInput.classList.toggle('hidden', fallbackModelSelect.value !== 'Other');
-            };
-
-            const generatePdf = async () => {
-                if(currentStep !== TOTAL_STEPS) prepareReview();
-                const certificate = document.getElementById('pdf-certificate');
-                certificate.style.display = 'block';
-
-                const risk = lastRiskProfile;
-                const primaryModelName = policyConfig.models.primary.model === 'Other' ? policyConfig.models.primary.customModel : policyConfig.models.primary.model;
-                const techSummary = policyConfig.models.isAutomationOnly ? `${(policyConfig.service.automationTools || []).join(', ') || 'Not specified'} (Automation)` : `${primaryModelName} (${policyConfig.models.primary.provider})`;
-                
-                const allMitigations = risk.mitigations.map(m => m.text);
-
-                document.getElementById('pdf-date').textContent = new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' });
-                document.getElementById('pdf-service-name').textContent = policyConfig.service.name || 'Not Specified';
-                document.getElementById('pdf-owner').textContent = policyConfig.service.owner || 'Not Specified';
-                document.getElementById('pdf-purpose').textContent = policyConfig.service.purpose || 'Not Specified';
-                document.getElementById('pdf-lawful-basis').textContent = policyConfig.privacy.lawfulBasis.replace('-', ' ');
-                document.getElementById('pdf-data-types').textContent = (policyConfig.privacy.sensitiveData.map(s => s.replace('-',' ')).join(', ') || 'None');
-                document.getElementById('pdf-retention').textContent = `Input: ${policyConfig.privacy.inputRetention}, Output: ${policyConfig.privacy.outputRetention}`;
-                document.getElementById('pdf-model').textContent = techSummary;
-                document.getElementById('pdf-mitigations').textContent = allMitigations.join(', ') || 'None specified';
-                document.getElementById('pdf-risk-level').textContent = `${risk.level} (Score: ${risk.score})`;
-                
-                const riskBox = document.getElementById('pdf-risk-box');
-                const riskLevelEl = document.getElementById('pdf-risk-level');
-                const colorMap = { 'Low': '#10b981', 'Moderate': '#f59e0b', 'High': '#ef4444' };
-                riskBox.style.borderColor = colorMap[risk.level];
-                riskLevelEl.style.color = colorMap[risk.level];
-                
-                await html2canvas(certificate, { scale: 2, useCORS: true }).then(canvas => {
-                    const imgData = canvas.toDataURL('image/jpeg', 0.85);
-                    const pdf = new jsPDF('p', 'mm', 'a4');
-                    pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
-                    const filename = `AI_Transparency_Certificate_${(policyConfig.service.name || 'Service').replace(/\s/g, '_')}.pdf`;
-                    pdf.save(filename);
-                });
-
-                certificate.style.display = 'none';
-            };
-
-            // --- EVENT LISTENERS & INITIALISATION ---
-            const themeToggle = document.getElementById('themeToggleBtn');
-            const sunIcon = 'fa-sun';
-            const moonIcon = 'fa-moon';
-
-            themeToggle.addEventListener('click', () => {
-                document.documentElement.classList.toggle('dark');
-                if (document.documentElement.classList.contains('dark')) {
-                    localStorage.setItem('theme', 'dark');
-                    themeToggle.querySelector('i').className = `fas ${sunIcon}`;
-                } else {
-                    localStorage.setItem('theme', 'light');
-                    themeToggle.querySelector('i').className = `fas ${moonIcon}`;
+        
+        if (techTransferGroup) {
+            techTransferGroup.addEventListener('click', () => {
+                const anyActive = techTransferGroup.querySelector('.btn-selector.active');
+                encryptionQuestions.classList.toggle('hidden', !anyActive);
+                if(!anyActive) {
+                    document.getElementById('encryptTransit').checked = false;
+                    document.getElementById('encryptRest').checked = false;
                 }
             });
-            
-            form.addEventListener('input', updateConfigFromForm);
-            document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
-            document.getElementById('importFile').addEventListener('change', (e) => {
-                if (!e.target.files.length) return;
-                const reader = new FileReader();
-                reader.onload = (event) => importPolicy(event.target.result);
-                reader.readAsText(e.target.files[0]);
-                e.target.value = '';
-            });
-
-            document.getElementById('nextBtn').addEventListener('click', () => { if (currentStep < TOTAL_STEPS) { currentStep++; if(currentStep === TOTAL_STEPS) prepareReview(); updateStepUI(); } });
-            document.getElementById('prevBtn').addEventListener('click', () => { if (currentStep > 1) { currentStep--; if(currentStep === TOTAL_STEPS) prepareReview(); updateStepUI(); }});
-            document.getElementById('completeBtn').addEventListener('click', generatePdf);
-            document.getElementById('downloadPdfBtn').addEventListener('click', generatePdf);
-            document.getElementById('downloadContractBtn').addEventListener('click', () => {
-                 const blob = new Blob([generateYAML(policyConfig)], { type: 'text/yaml' });
-                 const url = URL.createObjectURL(blob);
-                 const a = document.createElement('a');
-                 a.href = url;
-                 a.download = `${(policyConfig.service.name || 'ai-policy').replace(/\s/g, '_')}.yaml`;
-                 a.click();
-                 URL.revokeObjectURL(url);
-            });
-            document.getElementById('viewScoreBtn').addEventListener('click', populateAndShowScoreModal);
-            document.getElementById('closeScoreModalBtn').addEventListener('click', () => document.getElementById('scoreBreakdownModal').classList.add('hidden'));
-
-            document.getElementById('progressBar').addEventListener('click', (e) => {
-                const container = e.target.closest('.step-indicator-container');
-                if (container && container.classList.contains('completed')) {
-                    currentStep = parseInt(container.dataset.step, 10);
-                    if(currentStep === TOTAL_STEPS) prepareReview();
-                    updateStepUI();
+        }
+        
+        if (involvesThirdPartySwitch) {
+            involvesThirdPartySwitch.addEventListener('change', () => {
+                conditionalSupplierQuestions.classList.toggle('hidden', !involvesThirdPartySwitch.checked);
+                if(!involvesThirdPartySwitch.checked) {
+                    document.getElementById('onTenderList').checked = false;
+                    document.getElementById('supplierCompliant').checked = false;
                 }
+                updateAll();
             });
+        }
 
-            document.getElementById('resetBtn').addEventListener('click', () => {
-                if(confirm('Are you sure you want to start over? All current progress will be lost.')) {
-                    handleTemplateChange('custom');
-                    currentStep = 1;
-                    updateStepUI();
-                    window.scrollTo(0, 0);
-                }
+        function updateSliderTrack(el) { if (!el) return; const value = (el.value - el.min) / (el.max - el.min) * 100; el.style.setProperty('--gradient-stop', `${value}%`); }
+        if (accuracySlider && accuracyInput) { accuracySlider.addEventListener('input', (e) => { accuracyInput.value = e.target.value; updateSliderTrack(e.target); }); accuracyInput.addEventListener('input', (e) => { accuracySlider.value = e.target.value; updateSliderTrack(accuracySlider); }); }
+        
+        document.querySelectorAll('.help-icon').forEach(icon => {
+            icon.addEventListener('click', () => {
+                const helpText = icon.closest('.form-group').querySelector('.help-text');
+                if (helpText) helpText.classList.toggle('hidden');
             });
-            
-            // INITIALISATION
-            if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                document.documentElement.classList.add('dark');
-                themeToggle.querySelector('i').className = `fas ${sunIcon}`;
-            } else {
-                 themeToggle.querySelector('i').className = `fas ${moonIcon}`;
-            }
-
-            const commonTools = [{ name: 'Power Automate', icon: 'fa-bolt' },{ name: 'UiPath', icon: 'fa-robot' },{ name: 'Salesforce Flow', icon: 'fa-cloud' },{ name: 'Zapier', icon: 'fa-random' }];
-            document.getElementById('automationToolButtons').innerHTML = commonTools.map(t => `<button type="button" data-tool="${t.name}" class="selection-btn text-left px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition"><i class="fas ${t.icon} text-slate-400 dark:text-slate-500 mr-2 w-4 text-center"></i>${t.name}</button>`).join('');
-
-            const commonSystems = ['Dynamics', 'SAP', 'Integra', 'Co-Pilot', 'ODOO', 'Power BI', 'Excel', 'Outlook', 'Word', 'Adobe', 'Chrome', 'Edge'];
-            document.getElementById('systemSelectionButtons').innerHTML = commonSystems.map(s => `<button type="button" data-system="${s}" class="selection-btn text-xs text-center px-2 py-2 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition">${s}</button>`).join('');
-
-            handleTemplateChange('custom');
         });
+
+        if (openModalBtn) openModalBtn.addEventListener('click', () => scoreModal.classList.remove('hidden'));
+        if (closeModalBtn) closeModalBtn.addEventListener('click', () => scoreModal.classList.add('hidden'));
+        if (scoreModal) scoreModal.addEventListener('click', (e) => { if (e.target === scoreModal) scoreModal.classList.add('hidden'); });
+
+        if (openTransparencyModalBtn) openTransparencyModalBtn.addEventListener('click', () => transparencyModal.classList.remove('hidden'));
+        if (transparencyModalCloseBtn) transparencyModalCloseBtn.addEventListener('click', () => transparencyModal.classList.add('hidden'));
+        if (transparencyModal) transparencyModal.addEventListener('click', (e) => { if (e.target === transparencyModal) transparencyModal.classList.add('hidden'); });
+
+        if(generatePromptBtn) {
+            generatePromptBtn.addEventListener('click', () => {
+                const promptText = generateRISENPrompt();
+                if(promptDisplay) promptDisplay.textContent = promptText;
+                if(promptModal) promptModal.classList.remove('hidden');
+            });
+        }
+
+        if(copyPromptBtn) {
+            copyPromptBtn.addEventListener('click', () => {
+                if(promptDisplay && navigator.clipboard) {
+                    navigator.clipboard.writeText(promptDisplay.textContent).then(() => {
+                        copyPromptBtn.querySelector('span').textContent = 'Copied!';
+                        setTimeout(() => {
+                            copyPromptBtn.querySelector('span').textContent = 'Copy to Clipboard';
+                        }, 2000);
+                    });
+                }
+            });
+        }
+        if(promptModalCloseBtn) promptModalCloseBtn.addEventListener('click', () => promptModal.classList.add('hidden'));
+
+        // --- CORE LOGIC & FUNCTIONS ---
+
+        function calculateRisk() {
+            let score = 5; 
+            const breakdown = [{ factor: 'Inherent Project Baseline', points: 5, type: 'risk' }]; 
+            const data = getFormData();
+            const isAiProject = data.tech_ai_models.length > 0;
+            
+            if (isAiProject) { score += 15; breakdown.push({ factor: 'Inherent Risk (AI Model Usage)', points: 15, type: 'risk' }); }
+            if (data.tech_workflows.length > 0) { score += 5; breakdown.push({ factor: 'Inherent Risk (Workflow/RPA Usage)', points: 5, type: 'risk' }); }
+            if (data.tech_transfer.length > 0) { score += 10; breakdown.push({ factor: 'Inherent Risk (Data Transfer)', points: 10, type: 'risk' }); }
+            
+            const dataTypeBtn = document.querySelector('#dataType .btn-selector.active'); 
+            let dataSensitivityRisk = 0; 
+            if (dataTypeBtn) { const [risk] = dataTypeBtn.dataset.value.split('_').slice(-1); dataSensitivityRisk = parseInt(risk); if (dataSensitivityRisk > 0) breakdown.push({ factor: `Data Sensitivity (${dataTypeBtn.textContent.trim()})`, points: dataSensitivityRisk, type: 'risk' }); }
+            
+            let decisionNatureRisk = 0; 
+            if (isAiProject) {
+                const decisionNatureBtn = document.querySelector('#decisionNature .btn-selector.active'); 
+                if (decisionNatureBtn) { const [risk] = decisionNatureBtn.dataset.value.split('_').slice(-1); decisionNatureRisk = parseInt(risk); if (decisionNatureRisk > 0) breakdown.push({ factor: `Decision Nature (${decisionNatureBtn.textContent.trim()})`, points: decisionNatureRisk, type: 'risk' }); }
+            }
+            
+            score += dataSensitivityRisk + decisionNatureRisk;
+            
+            if (isAiProject) {
+                if (dataSensitivityRisk >= 50 && decisionNatureRisk >= 30 && !data.humanInLoop) { const amplifiedRisk = 40; score += amplifiedRisk; breakdown.push({ factor: 'CRITICAL Amplifier: Special Category Data for subjective decisions without human oversight', points: amplifiedRisk, type: 'risk' }); }
+                else if (decisionNatureRisk >= 30 && !data.humanInLoop) { const amplifiedRisk = 30; score += amplifiedRisk; breakdown.push({ factor: 'Amplified Risk: Subjective decisions without Human-in-the-Loop oversight', points: amplifiedRisk, type: 'risk' }); }
+                if (decisionNatureRisk >= 30 && !data.explainability) { const amplifiedRisk = 15; score += amplifiedRisk; breakdown.push({ factor: 'Amplified Risk: Subjective decisions without explainability methods', points: amplifiedRisk, type: 'risk' }); }
+            }
+            
+            if (dataSensitivityRisk >= 30 && !data.rbacInPlace) { const amplifiedRisk = 25; score += amplifiedRisk; breakdown.push({ factor: 'Amplified Risk: Sensitive data without Role-Based Access Control', points: amplifiedRisk, type: 'risk' }); }
+            if (dataSensitivityRisk >= 30 && !data.encryptRest) { const amplifiedRisk = 20; score += amplifiedRisk; breakdown.push({ factor: 'Amplified Risk: Sensitive data not encrypted at rest', points: amplifiedRisk, type: 'risk' }); }
+            if (data.tech_transfer.includes('tf_api') && dataSensitivityRisk >= 25 && !data.apiSecured) { const amplifiedRisk = 25; score += amplifiedRisk; breakdown.push({ factor: 'CRITICAL Amplifier: Sensitive data transfer via unsecured API', points: amplifiedRisk, type: 'risk' }); }
+
+            if (data.involvesThirdParty) { 
+                score += 10; breakdown.push({ factor: 'Inherent Risk (Third-Party)', points: 10, type: 'risk' }); 
+                if (!data.onTenderList) { score += 20; breakdown.push({ factor: 'High Risk: Supplier is not on an approved framework', points: 20, type: 'risk' }); }
+                if (!data.supplierCompliant) { score += 40; breakdown.push({ factor: 'High Risk: Supplier not confirmed policy-compliant', points: 40, type: 'risk' }); }
+            }
+            
+            if (isAiProject) {
+                const accuracyRisk = Math.round((data.accuracySlider - 50) * 0.3); if(accuracyRisk > 0) { score += accuracyRisk; breakdown.push({ factor: `High Accuracy Requirement (${data.accuracySlider}%)`, points: accuracyRisk, type: 'risk' }); }
+                if (!data.publicFacing) { score += 25; breakdown.push({ factor: 'GCS Risk: Users not notified of AI interaction', points: 25, type: 'risk' }); }
+                if (!data.biasAssessed) { score += 15; breakdown.push({ factor: 'Risk: Source data not assessed for bias', points: 15, type: 'risk' }); }
+                if (!data.biasTesting) { score += 20; breakdown.push({ factor: 'High Risk: Model not tested for fairness', points: 20, type: 'risk' }); }
+            }
+            
+            document.querySelectorAll('#tech_transfer .btn-selector.active[data-risk]').forEach(el => { const risk = parseInt(el.dataset.risk); score += risk; breakdown.push({ factor: `Insecure Transfer (${el.textContent.trim()})`, points: risk, type: 'risk' }); });
+
+            form.querySelectorAll('input[type=checkbox][data-mitigation]').forEach(el => { 
+                const isAiControl = el.closest('#aiSpecificQuestions');
+                if( (isAiProject && isAiControl) || !isAiControl ) {
+                    if (el.checked) { 
+                        const points = -parseInt(el.dataset.mitigation); 
+                        score += points; 
+                        const label = el.closest('.switch-container').querySelector('.label-group label').textContent; 
+                        breakdown.push({ factor: label, points: points, type: 'mitigation' }); 
+                    }
+                }
+            });
+            
+            const totalScore = Math.max(0, Math.min(100, Math.round(score))); 
+            return { score: totalScore, breakdown };
+        }
+
+        function populateScoreModal(breakdown) { const tbody = document.getElementById('score-breakdown-body'); if (!tbody) return; tbody.innerHTML = ''; let total = 0; breakdown.forEach(item => { const row = tbody.insertRow(); row.insertCell().textContent = item.factor; const pointsCell = row.insertCell(); pointsCell.textContent = item.points > 0 ? `+${item.points}` : item.points; row.className = item.type === 'risk' ? 'risk-item' : 'mitigation-item'; total += item.points; }); const totalCell = document.getElementById('total-score-cell'); if (totalCell) totalCell.textContent = Math.max(0, Math.min(100, total)); }
+        function updateRiskMeter(score) { const scoreEl = document.getElementById('risk-score'); const levelEl = document.getElementById('risk-level'); const indicatorEl = document.getElementById('risk-indicator'); if (!scoreEl || !levelEl || !indicatorEl) return; scoreEl.textContent = score; indicatorEl.style.left = `${score}%`; levelEl.className = 'risk-level'; if (score < 40) { levelEl.textContent = 'LOW'; levelEl.classList.add('risk-low'); } else if (score < 70) { levelEl.textContent = 'MODERATE'; levelEl.classList.add('risk-medium'); } else { levelEl.textContent = 'HIGH'; levelEl.classList.add('risk-high'); } }
+        
+        function saveToLocalStorage() { localStorage.setItem('aiAssessmentData', JSON.stringify(getFormData())); }
+        function updateAll() { const { score, breakdown } = calculateRisk(); updateRiskMeter(score); populateScoreModal(breakdown); saveToLocalStorage(); }
+
+        function getFormData() {
+            const formData = new FormData(form); const data = Object.fromEntries(formData.entries()); form.querySelectorAll('input[type=checkbox]').forEach(el => data[el.id] = el.checked); data.dataType = document.querySelector('#dataType .btn-selector.active')?.dataset.value; data.decisionNature = document.querySelector('#decisionNature .btn-selector.active')?.dataset.value; data.tech_apps = Array.from(document.querySelectorAll('#tech_apps .btn-selector.active')).map(b => b.id); data.tech_workflows = Array.from(document.querySelectorAll('#tech_workflows .btn-selector.active')).map(b => b.id); data.tech_ai_models = Array.from(document.querySelectorAll('#tech_ai_models .btn-selector.active')).map(b => b.id); data.tech_transfer = Array.from(document.querySelectorAll('#tech_transfer .btn-selector.active')).map(b => b.id); return data;
+        }
+
+        function loadFormData(data) {
+            form.reset();
+            Object.keys(data).forEach(key => { if (typeof data[key] !== 'object' && !Array.isArray(data[key])) { const el = form.elements[key]; if (el) { if (el.type === 'checkbox') el.checked = data[key]; else if (el.type === 'range') el.value = data[key]; else el.value = data[key]; } } });
+            document.querySelector('#dataType .active')?.classList.remove('active'); if(data.dataType) document.querySelector(`#dataType .btn-selector[data-value="${data.dataType}"]`)?.classList.add('active');
+            document.querySelector('#decisionNature .active')?.classList.remove('active'); if(data.decisionNature) document.querySelector(`#decisionNature .btn-selector[data-value="${data.decisionNature}"]`)?.classList.add('active');
+            ['tech_apps', 'tech_workflows', 'tech_ai_models', 'tech_transfer'].forEach(category => { document.querySelectorAll(`#${category} .btn-selector`).forEach(button => button.classList.remove('active')); if (data[category]) { data[category].forEach(id => document.getElementById(id)?.classList.add('active')); } });
+            ['app_other', 'wf_other', 'ai_other', 'tf_other'].forEach(id => { const button = document.getElementById(id); const textInput = document.getElementById(id + '_text'); if (button && textInput) textInput.classList.toggle('hidden', !button.classList.contains('active')); });
+            conditionalSupplierQuestions.classList.toggle('hidden', !data.involvesThirdParty); encryptionQuestions.classList.toggle('hidden', !(data.tech_transfer && data.tech_transfer.length > 0));
+            aiSpecificQuestions.classList.toggle('hidden', !(data.tech_ai_models && data.tech_ai_models.length > 0));
+            if(accuracyInput) accuracyInput.value = data.accuracySlider || 95;
+            updateSliderTrack(accuracySlider); updateAll();
+        }
+        
+        function loadFromLocalStorage() { const savedData = localStorage.getItem('aiAssessmentData'); if (savedData) { try { loadFormData(JSON.parse(savedData)); } catch(e) { console.error("Could not load saved data:", e); localStorage.removeItem('aiAssessmentData'); } } }
+        
+        if (exportBtn) exportBtn.addEventListener('click', () => { const data = getFormData(); const jsonString = JSON.stringify(data, null, 2); const blob = new Blob([jsonString], {type: "application/json"}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; const initiativeName = data.initiativeName || 'assessment'; a.download = `${initiativeName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url); });
+        if (importBtn) importBtn.addEventListener('click', () => importInput.click());
+        if (importInput) importInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (event) => { try { loadFormData(JSON.parse(event.target.result)); templateSelector.value = "blank"; } catch (err) { alert('Error: Could not parse JSON file.'); console.error(err); } }; reader.readAsText(file); e.target.value = ''; });
+
+        function generateRISENPrompt() {
+            const data = getFormData();
+            const { score, breakdown } = calculateRisk();
+            const technologies = [...data.tech_apps, ...data.tech_workflows, ...data.tech_ai_models].map(id => document.getElementById(id)?.textContent.trim()).filter(Boolean).join(', ');
+            const dataType = document.querySelector('#dataType .btn-selector.active')?.textContent.trim() || 'Not specified';
+            const decisionNature = document.querySelector('#decisionNature .btn-selector.active')?.textContent.trim() || 'Not specified';
+            
+            return `ROLE (R):
+You are a specialist in digital transparency for the UK Government, expert in explaining complex technical processes to a non-technical audience in accordance with GDS (Government Digital Service) standards.
+
+INSTRUCTION (I):
+Your task is to generate an AI/Automation Transparency Report in HTML format based on the provided assessment data. The report should be written in clear, simple language (plain English) suitable for the public. It must use UK English spelling and be formatted as a GDS-style dashboard with distinct cards.
+
+STEPS (S):
+1. Review the assessment data provided below.
+2. Create a main heading: 'AI and Automation in our Services: Transparency Report'.
+3. Create a 'Project Overview' card. Include the 'Initiative Name' and a summary of the 'Process Description' in plain English.
+4. Create a 'How it Works' card. List the key technologies involved.
+5. Create a 'Data We Use' card. Explain the type of data used (e.g., 'This service uses personal data to function...'). State clearly if PII removal is used.
+6. Create a 'How Decisions are Made' card. Explain the nature of the decision-making. Crucially, state clearly if a 'Human-in-the-Loop' is involved to review decisions.
+7. Create an 'Accountability' card. State clearly if there is an 'Appeal Mechanism' and if decisions are 'Logged for Audit'.
+8. Format the output as a dashboard using divs with a 'card' class. Use GDS-style classes for headings and text.
+
+END GOAL (E):
+The final output should be a standalone HTML file that clearly and honestly explains how this automated system works to the public, building trust through transparency.
+
+NARROWING (N):
+- Use plain English and avoid technical jargon. The primary audience is the general public.
+- Only provide the HTML code in a single block. Do not add any information not present in the assessment data.
+- Ensure all spelling is UK English (e.g., 'organisation', 'summarise').
+
+--- ASSESSMENT DATA ---
+Initiative Name: ${data.initiativeName || 'Not Provided'}
+Process Description: ${data.processDescription || 'Not Provided'}
+Technologies Used: ${technologies || 'Not specified'}
+Data Sensitivity: ${dataType}
+PII Removal Used: ${data.hasPIIRemoval ? 'Yes' : 'No'}
+Nature of Decision-Making: ${data.tech_ai_models.length > 0 ? decisionNature : 'Standard automated rules'}
+Human-in-the-Loop: ${data.humanInLoop ? 'Yes, key decisions are reviewed by a person.' : 'No, the process is fully automated.'}
+Appeal Mechanism: ${data.appealMechanism ? 'Yes, a process exists to appeal decisions.' : 'No'}
+Decisions Logged for Audit: ${data.loggingEnabled ? 'Yes' : 'No'}
+
+--- ONE-SHOT EXAMPLE OF DESIRED HTML FORMAT ---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>Transparency Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #F3F2F1; padding: 20px; }
+        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .card { background-color: #FFFFFF; border: 1px solid #B1B4B6; padding: 20px; }
+        .govuk-heading-l { font-size: 2.25rem; font-weight: 700; border-bottom: 5px solid #1D70B8; padding-bottom: 10px; margin-bottom: 30px;}
+        .govuk-heading-m { font-size: 1.5rem; font-weight: 700; margin-top: 0; }
+        .govuk-body { font-size: 1.1rem; line-height: 1.5; }
+    </style>
+</head>
+<body>
+    <h1 class="govuk-heading-l">AI and Automation in our Services: Transparency Report</h1>
+    <div class="dashboard">
+        <div class="card">
+            <h2 class="govuk-heading-m">Project Overview</h2>
+            <p class="govuk-body"><strong>Initiative Name:</strong> [AI summarises name here]</p>
+            <p class="govuk-body">[AI summarises process description here in plain English.]</p>
+        </div>
+        <div class="card">
+            <h2 class="govuk-heading-m">How it Works</h2>
+            <p class="govuk-body">This process uses the following types of technology: [AI lists technologies here].</p>
+        </div>
+        <div class="card">
+            <h2 class="govuk-heading-m">Data We Use</h2>
+            <p class="govuk-body">[AI explains data sensitivity here.]</p>
+        </div>
+        <div class="card">
+            <h2 class="govuk-heading-m">How Decisions are Made</h2>
+            <p class="govuk-body">[AI explains decision nature and human oversight here.]</p>
+        </div>
+        <div class="card">
+            <h2 class="govuk-heading-m">Accountability</h2>
+            <p class="govuk-body">[AI explains appeal and logging mechanisms here.]</p>
+        </div>
+    </div>
+</body>
+</html>`;
+        }
+
+        if (generatePdfBtn) {
+            generatePdfBtn.addEventListener('click', () => {
+                const data = getFormData(); const { score, breakdown } = calculateRisk();
+                if (!data.initiativeName || !data.responsibleOwner) { alert('Please enter an Initiative Name and a Responsible Owner before generating a certificate.'); return; }
+                document.getElementById('certDate').textContent = new Date().toLocaleDateString('en-GB');
+                document.getElementById('certInitiativeName').textContent = data.initiativeName; document.getElementById('certProcessDescription').textContent = data.processDescription; document.getElementById('certProjectLead').textContent = data.projectLead; document.getElementById('certResponsibleOwner').textContent = data.responsibleOwner; document.getElementById('certDpoContact').textContent = data.dpoContact;
+                let techHTML = '<ul>'; document.querySelectorAll('#tech_apps .active, #tech_workflows .active, #tech_ai_models .active, #tech_transfer .active').forEach(el => { let label = el.textContent.trim(); if(el.id.endsWith('_other')) { label += `: ${document.getElementById(el.id + '_text').value || 'Not specified'}`; } techHTML += `<li>${label}</li>`; }); techHTML += '</ul>'; if (techHTML === '<ul></ul>') techHTML = '<p>No specific technologies listed.</p>';
+                document.querySelector('#certTechStack').innerHTML = `<h3>Technology & Data Transfer</h3>${techHTML}`;
+                const certLevelEl = document.getElementById('certScoreLevel'); const currentLevelEl = document.getElementById('risk-level'); certLevelEl.textContent = `${currentLevelEl.textContent} (${score}/100)`; certLevelEl.className = 'certScoreLevel ' + currentLevelEl.classList.toString();
+                const rationaleListEl = document.getElementById('certRationaleList'); rationaleListEl.innerHTML = ''; breakdown.forEach(item => { const li = document.createElement('li'); li.innerHTML = `<strong>${item.factor} (${item.points > 0 ? '+' : ''}${item.points} pts):</strong> Contributes as a ${item.type} factor.`; rationaleListEl.appendChild(li); });
+                const certTemplate = document.getElementById('certificateTemplate'); certTemplate.style.display = 'block';
+                html2canvas(certTemplate, { scale: 2 }).then(canvas => {
+                    certTemplate.style.display = 'none'; const imgData = canvas.toDataURL('image/jpeg', 0.9); const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [canvas.width, canvas.height] });
+                    pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
+                    const filename = `${data.initiativeName.replace(/\s+/g, '_')}-${new Date().toISOString().slice(0,10)}.pdf`; pdf.save(filename);
+                });
+            });
+        }
+
+        // --- INITIAL LOAD ---
+        loadFromLocalStorage();
+        updateAll();
+        if(form) form.addEventListener('input', updateAll);
+    });
     </script>
 </body>
 </html>
